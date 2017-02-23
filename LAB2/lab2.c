@@ -101,15 +101,23 @@ __sbit __at 0xB2 LED2;
 __sbit __at 0xB1 BILED2;
 
 
+void ADC_Init(void)
+{
+	REF0CN = 0x03; /* Set Vref to use internal reference voltage (2.4V) */
+	ADC1CN = 0x80; /* Enable A/D converter (ADC1) */
+	ADC1CF |= 0x01; /* Set A/D converter gain to 1 */
+}
+
 //***************
 void main(void)
 {
 	Sys_Init();      // System Initialization
 	putchar(' ');    // the quote fonts may not copy correctly into SiLabs IDE
 	Port_Init();
-	//ADC_init();
+	ADC_Init();
 	Interrupt_Init();
 	Timer_Init();    // Initialize Timer 0
+
 	TMR0 = 0;
 	TR0 = 1;
 
@@ -140,16 +148,19 @@ void main(void)
 
 
 		//printf("\033[2J");
-		printf("\033[0;0H");
+		//printf("\033[0;0H");
 
 		setLeds(0, 1); //turns off all the leds
 		wait_time = read_AD_input(1) * 5 + 200;
 		wait_time_counts = timeToCounts(wait_time);
-		getchar();
+		//getchar();
+		printf("got char");
 		points[0] = 0;
 		points[1] =0;
 		points[2]= 0;
 		counts = 0;
+		i =0;
+		x =0;
 		for (i = 0; i < 3; ++i)
 		{
 			for (x = 0; x < 8; ++x )
@@ -157,7 +168,7 @@ void main(void)
 				counts = 0;
 				while (counts < wait_time_counts )
 				{
-					printf("%d",counts);
+					printf("This is the counts%d",counts);
 					if (counts < 4)
 						BUZZER = 0 ;
 					else BUZZER = 1;
@@ -238,12 +249,6 @@ void Port_Init(void)
 	P1 |= 0b00000010;
 }
 
-void ADC_Init(void)
-{
-	REF0CN = 0x03; /* Set Vref to use internal reference voltage (2.4V) */
-	ADC1CN = 0x80; /* Enable A/D converter (ADC1) */
-	ADC1CF |= 0x01; /* Set A/D converter gain to 1 */
-}
 unsigned char read_AD_input(unsigned char n)
 {
 	AMX1SL = n; /* Set P1.n as the analog input for ADC1 */
