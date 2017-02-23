@@ -78,8 +78,9 @@ int wait_time;
 int points[3];
 const int FIFTEEN_MS = 3;
 const int ONE_HUNDRED_MS = 23;
-                           const int THREE_SECONDS = 675;
+const int THREE_SECONDS = 675;
 const int FIFTEEN_SECONDS = 3375;
+
 int x =0;
 int i =0;
 int outs = 0;
@@ -123,96 +124,82 @@ void main(void)
 
 	while (1) /* the following loop contains the button pressing/tracking code */
 	{
-		LED0 = outs;
-		LED1 = outs;
-		LED2 = outs;
-		BUZZER = outs;
-		outs = !PB0;
-		printf("Timer: %d seconds \r\n", counts / 255);
-		printf("---------------------\r\n");
-		printf("Inputs \r\n");
-		printf("---------------------\r\n");
-		printf("PB0: %d \r\n", PB0);
-		printf("PB1: %d \r\n", PB1);
-		printf("PB2: %d \r\n", PB2);
-		printf("PB3: %d \r\n", PB3);
-		//printf("POT: %d \r\n", read_AD_input(1));
-		printf("SS: %d \r\n", SS);
-		printf("---------------------\r\n");
-		printf("Outputs");
-		printf("---------------------\r\n");
-		printf("LED0 %d \r\n", LED0);
-		printf("LED1 %d \r\n", LED1);
-		printf("LED2 %d \r\n", LED2);
-		printf("BUZZ %d \r\n", BUZZER);
-
-
+    printf("---------------\r\nGuitar Hero\r\n---------------\r\n");
+    while(!SS){}
+    wait(FIFTEEN_MS);
+    while(SS){}
+    wait(FIFTEEN_MS);
+    printf("Game Start\r\n");
+    for(i = 0; i < 20; i ++){
+      printf("NUMBER %d \r\n", random_int(7));
+      wait(ONE_HUNDRED_MS);
+    }
 		//printf("\033[2J");
 		//printf("\033[0;0H");
 
-		setLeds(0, 1); //turns off all the leds
-		wait_time = read_AD_input(1) * 5 + 200;
-		wait_time_counts = timeToCounts(wait_time);
-		//getchar();
-		printf("got char");
-		points[0] = 0;
-		points[1] =0;
-		points[2]= 0;
-		counts = 0;
-		i =0;
-		x =0;
-		for (i = 0; i < 3; ++i)
-		{
-			for (x = 0; x < 8; ++x )
-			{
-				counts = 0;
-				while (counts < wait_time_counts )
-				{
-					printf("This is the counts%d",counts);
-					if (counts < 4)
-						BUZZER = 0 ;
-					else BUZZER = 1;
-				}
-				randomInteger  = random_int(3);
-
-				if (randomInteger == 0) {
-					setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
-					wait(wait_time);//wait for the specfied time
-					setLeds(randomInteger, 1); //turn off the 0th led
-				}
-				if (randomInteger == 1) {
-					setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
-					wait(wait_time);//wait for the specfied time
-					setLeds(randomInteger, 1); //turn off the 0th led
-				}
-				if (randomInteger == 2) {
-					setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
-					wait(wait_time);//wait for the specfied time
-					setLeds(randomInteger, 1); //turn off the 0th led
-				}
-				if (randomInteger == 3) {
-					setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
-					wait(wait_time);//wait for the specfied time
-					setLeds(randomInteger, 1); //turn off the 0th led
-				}
-				counts = 0;
-				while (counts < wait_time_counts / 2) {
-					if (!PB0)buttonPressed = 0;
-					else if (!PB1)buttonPressed = 1;
-					else if (!PB2)buttonPressed = 2;
-					else if (!PB3)buttonPressed = 3;
-					else buttonPressed = -1;
-				}
-				if (buttonPressed ==  randomInteger)
-				{
-					points[i]+=1;
-				}
-			}
-		}
-		for (i = 0; i < 3; ++i)
-		{
-			printf("Player %d: scored a %d/8", i, points[i]);
-		}
+		// setLeds(0, 1); //turns off all the leds
+		// wait_time = read_AD_input(1) * 5 + 200;
+		// wait_time_counts = timeToCounts(wait_time);
+		// //getchar();
+		// printf("got char");
+		// points[0] = 0;
+		// points[1] =0;
+		// points[2]= 0;
+		// counts = 0;
+		// i =0;
+		// x =0;
+		// for (i = 0; i < 3; ++i)
+		// {
+		// 	for (x = 0; x < 8; ++x )
+		// 	{
+		// 		counts = 0;
+		// 		while (counts < wait_time_counts )
+		// 		{
+		// 			printf("This is the counts%d",counts);
+		// 			if (counts < 4)
+		// 				BUZZER = 0 ;
+		// 			else BUZZER = 1;
+		// 		}
+		// 		randomInteger  = random_int(7);
+    //     printf("My Number: %d" randomInteger);
+		// 		if (randomInteger == 0) {
+		// 			setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
+		// 			wait(wait_time);//wait for the specfied time
+		// 			setLeds(randomInteger, 1); //turn off the 0th led
+		// 		}
+		// 		if (randomInteger == 1) {
+		// 			setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
+		// 			wait(wait_time);//wait for the specfied time
+		// 			setLeds(randomInteger, 1); //turn off the 0th led
+		// 		}
+		// 		if (randomInteger == 2) {
+		// 			setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
+		// 			wait(wait_time);//wait for the specfied time
+		// 			setLeds(randomInteger, 1); //turn off the 0th led
+		// 		}
+		// 		if (randomInteger == 3) {
+		// 			setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
+		// 			wait(wait_time);//wait for the specfied time
+		// 			setLeds(randomInteger, 1); //turn off the 0th led
+		// 		}
+		// 		counts = 0;
+		// 		while (counts < wait_time_counts / 2) {
+		// 			if (!PB0)buttonPressed = 0;
+		// 			else if (!PB1)buttonPressed = 1;
+		// 			else if (!PB2)buttonPressed = 2;
+		// 			else if (!PB3)buttonPressed = 3;
+		// 			else buttonPressed = -1;
+		// 		}
+		// 		if (buttonPressed ==  randomInteger)
+		// 		{
+		// 			points[i]+=1;
+		// 		}
+		// 	}
+		// }
+		// for (i = 0; i < 3; ++i)
+		// {
+		// 	printf("Player %d: scored a %d/8", i, points[i]);
+		// }
 	}
 
 
