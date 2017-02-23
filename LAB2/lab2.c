@@ -80,6 +80,7 @@ const int FIFTEEN_MS = 3;
 const int ONE_HUNDRED_MS = 23
 const int THREE_SECONDS = 675;
 const int FIFTEEN_SECONDS = 3375;
+
 int outs = 0;
 int currCount = 0;
 int wait_time_counts = 0;
