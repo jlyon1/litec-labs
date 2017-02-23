@@ -136,13 +136,15 @@ void main(void)
     printf("Game Start: Wait time: %d\r\n",wait_time);
     for(i = 0; i < 10; i ++){
 			int myNum = random_int(6) + 1;
+			BILED0 = 0;
+			BILED1 = 0;
 			printf("Turn Start! \r\n");
 			BUZZER = 0;
 			wait(ONE_HUNDRED_MS * 2);
 			BUZZER = 1;
 			printf("Wait!\r\n");
 			setLeds(0,myNum);
-      wait(wait_time_counts);
+      		wait(wait_time_counts);
 			printf("STRUM NOW\r\n");
 			currCount = counts;
 			right = 0;
