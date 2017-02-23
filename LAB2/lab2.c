@@ -61,7 +61,7 @@ void Port_Init(void);		//Port Initialization
 void Timer_Init(void);     	//Initialize Timer 0
 void Interrupt_Init(void); 	//Initialize interrupts
 void Timer0_ISR(void) __interrupt 1;
-void ADC_Init(void);
+//void ADC_Init(void);
 unsigned char read_AD_input(unsigned char n);
 void setLeds(int led, int status);
 int timeToCounts(int timeInSec);
@@ -88,6 +88,8 @@ int currCount = 0;
 int wait_time_counts = 0;
 int buttonPressed;
 int randomInteger;
+int right;
+
 __sbit __at 0xA7 SS;
 __sbit __at 0xB7 PB0;
 __sbit __at 0xB5 PB1;
@@ -99,7 +101,7 @@ __sbit __at 0xA5 BUZZER;
 __sbit __at 0xB6 LED0;
 __sbit __at 0xB4 LED1;
 __sbit __at 0xB2 LED2;
-__sbit __at 0xB1 BILED2;
+__sbit __at 0xB1 BILED0;
 
 
 void ADC_Init(void)
@@ -125,14 +127,45 @@ void main(void)
 	while (1) /* the following loop contains the button pressing/tracking code */
 	{
     printf("---------------\r\nGuitar Hero\r\n---------------\r\n");
-    while(!SS){}
+    //while(!SS){}
     wait(FIFTEEN_MS);
-    while(SS){}
+    //while(SS){}
     wait(FIFTEEN_MS);
-    printf("Game Start\r\n");
-    for(i = 0; i < 20; i ++){
-      printf("NUMBER %d \r\n", random_int(7));
-      wait(ONE_HUNDRED_MS);
+	wait_time = read_AD_input(1) * 5 + 200;
+	wait_time_counts = timeToCounts(wait_time);
+    printf("Game Start: Wait time: %d\r\n",wait_time);
+    for(i = 0; i < 10; i ++){
+			int myNum = random_int(6) + 1;
+			printf("Turn Start! \r\n");
+			BUZZER = 0;
+			wait(ONE_HUNDRED_MS * 2);
+			BUZZER = 1;
+			printf("Wait!\r\n");
+			setLeds(0,myNum);
+      wait(wait_time_counts);
+			printf("STRUM NOW\r\n");
+			currCount = counts;
+			right = 0;
+			setLeds(0,0);
+			while(counts-currCount < wait_time_counts/2){
+				if(!PB0){
+					right = !PB1 + (!PB2 * 2) + (!PB3 * 4);
+					printf("You Strummed %d\r\n",right);
+					break;
+				}
+			}
+			if(right == myNum){
+				printf("Correct!\r\n");
+				BILED0 = 0;
+				BILED1 = 1;
+				wait(THREE_SECONDS/3);
+			}else{
+				printf("Wrong!\r\n");
+				BILED0 = 1;
+				BILED1 = 0;
+				wait(THREE_SECONDS/3);
+
+			}
     }
 		//printf("\033[2J");
 		//printf("\033[0;0H");
@@ -213,13 +246,12 @@ void setLeds(int led, int status) {
 	LED0 = 1;
 	LED1 = 1;
 	LED2 = 1;
-	if (led == 0 )
-		LED0 = status;
-	if (led == 1)
-		LED1 = status;
-	if (led == 2)
-		LED2 = status;
-}
+	led = 5;
+	status = ~status;
+	LED0 = status & 0b001;
+	LED1 = status & 0b010;
+	LED2 = status & 0b100;
+	}
 //Revised this function
 int timeToCounts(int timeInMs) {
 	return (timeInMs * ONE_HUNDRED_MS) / 100;
@@ -227,19 +259,20 @@ int timeToCounts(int timeInMs) {
 
 void Port_Init(void)
 {
-	P3MDOUT = 0b01010110;
-	P3 |= ~0b01010110;
-	P2MDOUT &= 0b011111111;
-	P2 |= 0b10110000;
-	P1MDIN |= ~0x02;
-	P1MDOUT &= ~0x02;
-	P1 |= 0b00000010;
+  P3MDOUT = 0b01010110;
+  P3 |= ~0b01010110;
+  P2MDOUT &= 0b011111111;
+  P2 |= 0b10110000;
+  P1MDIN &= ~0x02;
+  P1MDOUT &= ~0x02;
+  P1 |= 0b00000010;
 }
+
 
 unsigned char read_AD_input(unsigned char n)
 {
 	AMX1SL = n; /* Set P1.n as the analog input for ADC1 */
-	ADC1CN = ADC1CN & ~0x20; /* Clear the â€œConversion Completedâ€ flag */
+	ADC1CN = ADC1CN & ~0x20; /* Clear the “Conversion Completed” flag */
 	ADC1CN = ADC1CN | 0x10; /* Initiate A/D conversion */
 	while ((ADC1CN & 0x20) == 0x00); /* Wait for conversion to complete */
 	return ADC1; /* Return digital value in ADC1 register */
