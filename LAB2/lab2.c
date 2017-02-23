@@ -77,11 +77,13 @@ unsigned char input;	//input variable
 int wait_time;
 int points = {0, 0, 0};
 const int FIFTEEN_MS = 3;
+const int ONE_HUNDRED_MS = 23
 const int THREE_SECONDS = 675;
 const int FIFTEEN_SECONDS = 3375;
 int outs = 0;
 int currCount = 0;
 int wait_time_counts = 0;
+
 __sbit __at 0xA7 SS;
 __sbit __at 0xB7 PB0;
 __sbit __at 0xB5 PB1;
@@ -176,9 +178,9 @@ void setLeds(int led, int status) {
 	if (led == 2)
 		LED2 = status;
 }
-o
-int timeToCounts(int timeInSec, int bitCounter) {
-	return (1 / ((12 / 22118.4) * pow(2, bitCounter))) / timeInSec;
+//Revised this function
+int timeToCounts(int timeInMs) {
+	return (timeInMs * ONE_HUNDRED_MS)/100;
 }
 
 void Port_Init(void)
