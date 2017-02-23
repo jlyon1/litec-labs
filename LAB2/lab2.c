@@ -12,7 +12,7 @@
 
 #include <c8051_SDCC.h>// include files. This file is available online
 #include <stdio.h>
-#include <math.h>
+#include <stdlib.h>
 
 /*
 
@@ -75,16 +75,18 @@ void wait(int time);
 int counts;				//overflow tracking variable
 unsigned char input;	//input variable
 int wait_time;
-int points = {0, 0, 0};
+int points[3];
 const int FIFTEEN_MS = 3;
-const int ONE_HUNDRED_MS = 23
-const int THREE_SECONDS = 675;
+const int ONE_HUNDRED_MS = 23;
+                           const int THREE_SECONDS = 675;
 const int FIFTEEN_SECONDS = 3375;
-
+int x =0;
+int i =0;
 int outs = 0;
 int currCount = 0;
 int wait_time_counts = 0;
-
+int buttonPressed;
+int randomInteger;
 __sbit __at 0xA7 SS;
 __sbit __at 0xB7 PB0;
 __sbit __at 0xB5 PB1;
@@ -143,25 +145,66 @@ void main(void)
 		setLeds(0, 1); //turns off all the leds
 		wait_time = read_AD_input(1) * 5 + 200;
 		wait_time_counts = timeToCounts(wait_time);
-		points = {0, 0, 0};
+		getchar();
+		points[0] = 0;
+		points[1] =0;
+		points[2]= 0;
 		counts = 0;
-		for (int i = 0; i < 3; ++i)
+		for (i = 0; i < 3; ++i)
 		{
-			counts = 0;
-			while (counts < wait_time_counts )
+			for (x = 0; x < 8; ++x )
 			{
-				if (counts < 4)
-					BUZZER = 0 ;
-				else BUZZER = 1;
-			}
-			int temp  = random_int(3);
-		}
-		if (temp == 0) {
-			setLeds(0, 0)
-			wait(wait_time);
-		}
+				counts = 0;
+				while (counts < wait_time_counts )
+				{
+					printf("%d",counts);
+					if (counts < 4)
+						BUZZER = 0 ;
+					else BUZZER = 1;
+				}
+				randomInteger  = random_int(3);
 
+				if (randomInteger == 0) {
+					setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
+					wait(wait_time);//wait for the specfied time
+					setLeds(randomInteger, 1); //turn off the 0th led
+				}
+				if (randomInteger == 1) {
+					setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
+					wait(wait_time);//wait for the specfied time
+					setLeds(randomInteger, 1); //turn off the 0th led
+				}
+				if (randomInteger == 2) {
+					setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
+					wait(wait_time);//wait for the specfied time
+					setLeds(randomInteger, 1); //turn off the 0th led
+				}
+				if (randomInteger == 3) {
+					setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
+					wait(wait_time);//wait for the specfied time
+					setLeds(randomInteger, 1); //turn off the 0th led
+				}
+				counts = 0;
+				while (counts < wait_time_counts / 2) {
+					if (!PB0)buttonPressed = 0;
+					else if (!PB1)buttonPressed = 1;
+					else if (!PB2)buttonPressed = 2;
+					else if (!PB3)buttonPressed = 3;
+					else buttonPressed = -1;
+				}
+				if (buttonPressed ==  randomInteger)
+				{
+					points[i]+=1;
+				}
+			}
+		}
+		for (i = 0; i < 3; ++i)
+		{
+			printf("Player %d: scored a %d/8", i, points[i]);
+		}
 	}
+
+
 
 }
 
@@ -181,7 +224,7 @@ void setLeds(int led, int status) {
 }
 //Revised this function
 int timeToCounts(int timeInMs) {
-	return (timeInMs * ONE_HUNDRED_MS)/100;
+	return (timeInMs * ONE_HUNDRED_MS) / 100;
 }
 
 void Port_Init(void)
@@ -241,6 +284,6 @@ void wait(int time) {
 	int init_counts = counts;
 	while (counts - init_counts < time) {}
 }
-void random_int(int max) {
+int random_int(int max) {
 	return rand() % (max + 1) ;
 }
