@@ -1,13 +1,14 @@
-/*	Name: AKHIL OWNS THIS FILE
+/*	Name: Joseph Lyon, Akhil Jacob, Donovan Gonzoles
 	Section: 2
 	Side: A
 	Date: 2/20/2017
 
 	Assignment description:
-		get the number of button presses in 15 seconds,
-    if the button is down for 3 seconds, increment another counter, print out the results.
+		This program is meant to operate like a guitar hero game, taking inputs
+		from several push buttons and a potentiometer, and illuminating LEds in
+		order to make a game that resembles a ssimplfiied version of guitar Hero
 
-	File name: hw6.c
+	File name: lab2.c
 */
 
 #include <c8051_SDCC.h>// include files. This file is available online
