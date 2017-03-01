@@ -157,13 +157,13 @@ int timeToCounts(int timeInMs) {
 //Port initializations
 void Port_Init(void)
 {
-  P3MDOUT = 0b01010110;
-  P3 |= ~0b01010110;
-  P2MDOUT &= 0b011111111;
-  P2 |= 0b10110000;
+  P3MDOUT = 0x56;
+  P3 |= ~0x56;
+  P2MDOUT &= 0xFF;
+  P2 |= 0xB0;
   P1MDIN &= ~0x02;
   P1MDOUT &= ~0x02;
-  P1 |= 0b00000010;
+  P1 |= 0x02;
 }
 
 
