@@ -202,10 +202,14 @@ void Timer0_ISR(void) __interrupt 1
 {
 	counts += 1;
 }
+
+//This function makes it simple to wait a specific amount of itme in counts.
 void wait(int time) {
 	int init_counts = counts;
 	while (counts - init_counts < time) {}
 }
+
+//Generate a random integer.
 int random_int(int max) {
 	return rand() % (max + 1) ;
 }
