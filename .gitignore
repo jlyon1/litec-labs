@@ -1,0 +1,17 @@
+*.#1
+*.adb
+LAB2/lab2.asm
+*.hex
+LAB2/LAB2.lk
+*.lst
+LAB2/LAB2.map
+*.rel
+LAB2/lab2.rst
+*.omf
+LAB2/lab2.sym
+*.mem
+LAB2/tmp.out
+*.wsp
+LAB2/LAB2.cdb
+*.#3
+LAB2/LAB2.#2

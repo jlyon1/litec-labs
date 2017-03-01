@@ -14,46 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/*
-
- _        _______ _________ _______      _________ _______
-( (    /|(  ___  )\__   __/(  ____ \     \__   __/(  ___  )
-|  \  ( || (   ) |   ) (   | (    \/ _      ) (   | (   ) |
-|   \ | || |   | |   | |   | (__    (_)     | |   | |   | |
-| (\ \) || |   | |   | |   |  __)           | |   | |   | |
-| | \   || |   | |   | |   | (       _      | |   | |   | |
-| )  \  || (___) |   | |   | (____/\(_)  ___) (___| (___) |
-|/    )_)(_______)   )_(   (_______/     \_______/(_______)
-
- _______           _______  _______ _________
-(  ____ \|\     /|(  ____ \(  ____ \\__   __/
-| (    \/| )   ( || (    \/| (    \/   ) (
-| (_____ | (___) || (__    | (__       | |
-(_____  )|  ___  ||  __)   |  __)      | |
-      ) || (   ) || (      | (         | |
-/\____) || )   ( || (____/\| (____/\   | |
-\_______)|/     \|(_______/(_______/   )_(
-
- _        _______  _______  ______   _______
-( (    /|(  ____ \(  ____ \(  __  \ (  ____ \
-|  \  ( || (    \/| (    \/| (  \  )| (    \/
-|   \ | || (__    | (__    | |   ) || (_____
-| (\ \) ||  __)   |  __)   | |   | |(_____  )
-| | \   || (      | (      | |   ) |      ) |
-| )  \  || (____/\| (____/\| (__/  )/\____) |
-|/    )_)(_______/(_______/(______/ \_______)
-
-          _______  ______   _______ __________________ _        _______
-|\     /|(  ____ )(  __  \ (  ___  )\__   __/\__   __/( (    /|(  ____ \
-| )   ( || (    )|| (  \  )| (   ) |   ) (      ) (   |  \  ( || (    \/
-| |   | || (____)|| |   ) || (___) |   | |      | |   |   \ | || |
-| |   | ||  _____)| |   | ||  ___  |   | |      | |   | (\ \) || | ____
-| |   | || (      | |   ) || (   ) |   | |      | |   | | \   || | \_  )
-| (___) || )      | (__/  )| )   ( |   | |   ___) (___| )  \  || (___) |
-(_______)|/       (______/ |/     \|   )_(   \_______/|/    )_)(_______)
-
-*/
-
 //-----------------------------------------------------------------------------
 // Function Prototypes
 //-----------------------------------------------------------------------------
@@ -169,81 +129,14 @@ void main(void)
 
 			}
     }
-		//printf("\033[2J");
-		//printf("\033[0;0H");
 
-		// setLeds(0, 1); //turns off all the leds
-		// wait_time = read_AD_input(1) * 5 + 200;
-		// wait_time_counts = timeToCounts(wait_time);
-		// //getchar();
-		// printf("got char");
-		// points[0] = 0;
-		// points[1] =0;
-		// points[2]= 0;
-		// counts = 0;
-		// i =0;
-		// x =0;
-		// for (i = 0; i < 3; ++i)
-		// {
-		// 	for (x = 0; x < 8; ++x )
-		// 	{
-		// 		counts = 0;
-		// 		while (counts < wait_time_counts )
-		// 		{
-		// 			printf("This is the counts%d",counts);
-		// 			if (counts < 4)
-		// 				BUZZER = 0 ;
-		// 			else BUZZER = 1;
-		// 		}
-		// 		randomInteger  = random_int(7);
-    //     printf("My Number: %d" randomInteger);
-		// 		if (randomInteger == 0) {
-		// 			setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
-		// 			wait(wait_time);//wait for the specfied time
-		// 			setLeds(randomInteger, 1); //turn off the 0th led
-		// 		}
-		// 		if (randomInteger == 1) {
-		// 			setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
-		// 			wait(wait_time);//wait for the specfied time
-		// 			setLeds(randomInteger, 1); //turn off the 0th led
-		// 		}
-		// 		if (randomInteger == 2) {
-		// 			setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
-		// 			wait(wait_time);//wait for the specfied time
-		// 			setLeds(randomInteger, 1); //turn off the 0th led
-		// 		}
-		// 		if (randomInteger == 3) {
-		// 			setLeds(randomInteger, 0);//turn on the 0th led and turn off the rest
-		// 			wait(wait_time);//wait for the specfied time
-		// 			setLeds(randomInteger, 1); //turn off the 0th led
-		// 		}
-		// 		counts = 0;
-		// 		while (counts < wait_time_counts / 2) {
-		// 			if (!PB0)buttonPressed = 0;
-		// 			else if (!PB1)buttonPressed = 1;
-		// 			else if (!PB2)buttonPressed = 2;
-		// 			else if (!PB3)buttonPressed = 3;
-		// 			else buttonPressed = -1;
-		// 		}
-		// 		if (buttonPressed ==  randomInteger)
-		// 		{
-		// 			points[i]+=1;
-		// 		}
-		// 	}
-		// }
-		// for (i = 0; i < 3; ++i)
-		// {
-		// 	printf("Player %d: scored a %d/8", i, points[i]);
-		// }
 	}
-
-
 
 }
 
 
-//***************
-
+//This function takes a number, performs masking operations, and illuminates the LEDs
+//accordingly. This makes for simpler illumination of the LEDs given a random number
 void setLeds(int led, int status) {
 	LED0 = 1;
 	LED1 = 1;
@@ -254,11 +147,13 @@ void setLeds(int led, int status) {
 	LED1 = status & 0b010;
 	LED2 = status & 0b100;
 	}
-//Revised this function
+
+//Simple converter function to convert a specific time to wait into counts for the sysclock/12 timer
 int timeToCounts(int timeInMs) {
 	return (timeInMs * ONE_HUNDRED_MS) / 100;
 }
 
+//Port initializations
 void Port_Init(void)
 {
   P3MDOUT = 0b01010110;
