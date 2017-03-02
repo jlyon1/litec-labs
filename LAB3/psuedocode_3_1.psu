@@ -1,0 +1,75 @@
+compiler directives
+declare global variables
+function prototypes
+main function
+	declare local variables
+  configure IO Ports
+  Configure crossbar
+  initialize timer
+  //---------------------Electric Compass Task--------------------
+  //Begin Steering calibration
+  int calibrated = 0;
+  char in;
+  print "move steering to centered [l][r]"
+  while !calibrated
+    in = read from user
+    if in = 'l':
+      turn left
+    if in = 'r':
+      turn right
+    print pulse width
+
+    if in = 'd', calibrated = 1, store center
+  calibrated = 0;
+  print "move steering to left [l][r]"
+  while !calibrated
+    in = read from user
+    if in = 'l':
+      turn left
+    if in = 'r':
+      turn right
+    print pulse width
+
+    if in = 'd', calibrated = 1, store left
+
+  calibrated = 0;
+  print "move steering to centered [l][r]"
+  while !calibrated
+    in = read from user
+    if in = 'l':
+      turn left
+    if in = 'r':
+      turn right
+    print pulse width
+
+    if in = 'd', calibrated = 1, store center
+  print "now test the steering:""
+  calibrated = 0;
+  while !calibrated
+    in = read from user
+    if in = 'l':
+      if(pulse width current < pulse width max)
+        turn left
+    if in = 'r':
+      if(pulse width current > pulse width min)
+        turn right
+    print pulse width
+  //---------------------Ultrasonic Range Task--------------------
+  initialize speed controller
+
+  int calibrated = 0;
+  char in;
+  print "ajust the speed of the wheels [f][b]"
+  while !calibrated
+    in = read from user
+    if in = 'f':
+      if pw < 1.9ms
+        increase pw
+    if in = 'b':
+      if pw > 1.9ms
+        decrease pw
+
+    print pulse width
+
+
+  end while loop
