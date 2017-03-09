@@ -1,4 +1,5 @@
-/* Sample code for Lab 3.1. This code provides a basic start. */
+/* Sample code 
+for Lab 3.1. This code provides a basic start. */
 #include <c8051_SDCC.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,10 +16,11 @@ void PCA_ISR ( void ) __interrupt 9;
 // Global Variables
 //-----------------------------------------------------------------------------
 unsigned int PW_CENTER = 2760;
-unsigned int PW_MIN; = 2030;
-unsigned int PW_MAX; = 3500;
+unsigned int PW_MIN = 2030;
+unsigned int PW_MAX = 3500;
 unsigned int PW = 0;
-
+unsigned int val;
+int count;
 //-----------------------------------------------------------------------------
 // Main Function
 //-----------------------------------------------------------------------------
@@ -30,13 +32,20 @@ void main(void)
     Port_Init();
     XBR0_Init();
     PCA_Init();
-
+	count = 0;
     //print beginning message
     printf("Embedded Control Steering Calibration\n");
     // set the PCA output to a neutral setting
     //__________________________________________
     //__________________________________________
     PW = PW_CENTER;
+	
+	while(1){
+		val = 0xFFFF - 2760;
+		PCA0CP2 = val;
+		printf("%u \r\n",PCA0);
+	}
+
     //__________________________________________
     //__________________________________________
     while(1)
@@ -74,10 +83,14 @@ void XBR0_Init()
 //
 void PCA_Init(void)
 {
-    PCA0MD &= 0b11110001;//Set to sysclock/12
+    PCA0MD = 0b01110001;//Set to sysclock/12
+	//PCA0MD = 0x
     PCA0CPM0 = 0xC2;
+	PCA0CPM2 = 0xC2;
     PCA0CN = 0x40;
-    EIE1 |= 0x04;
+    EIE1 |= 0b00001000;
+	EA = 1;
+	
 }
 
 //-----------------------------------------------------------------------------
@@ -88,8 +101,13 @@ void PCA_Init(void)
 //
 void PCA_ISR ( void ) __interrupt 9
 {
-    // reference to the sample code in Example 4.5 -Pulse Width Modulation
-    // implemented using the PCA (Programmable Counter Array), p. 50 in Lab Manual.
+	if(CF){
+		CF = 0;
+		PCA0 = 28670;
+    	// reference to the sample code in Example 4.5 -Pulse Width Modulation
+    	// implemented using the PCA (Programmable Counter Array), p. 50 in Lab Manual.
+		count += 1;
+	}
 }
 
 void Steering_Servo()
