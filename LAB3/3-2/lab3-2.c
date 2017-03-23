@@ -60,12 +60,14 @@ void main(void)
     }
     if(compFlag == 2){
       heading = ReadCompass();
+	  compFlag = 0;
 
     }
     //Print here to not slow down
-    if(count % 4 == 0){
+    if(count % 40 == 0){
+	  count = 1;
       printf("Range %u\r\n", ranger);
-      printf("Heading %u\r\n", heading)
+      printf("Heading %u\r\n", heading);
     }
   }
 }
