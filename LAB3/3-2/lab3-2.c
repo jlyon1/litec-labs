@@ -11,7 +11,8 @@ void PCA_Init (void);
 void XBR0_Init();
 void Steering_Servo(void);
 void PCA_ISR ( void ) __interrupt 9;
-
+void SMB_init(void);
+unsigned int ReadRanger();
 //-----------------------------------------------------------ll------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -24,11 +25,12 @@ unsigned int val;
 int count;
 char input;
 unsigned int result = 0;
+unsigned int flag = 0;
 
 //-----------------------------------------------------------------------------
 // Main Function
 //-----------------------------------------------------------------------------
-void main(void)
+void main(void)            
 {
 \
     // initialize board
@@ -38,24 +40,21 @@ void main(void)
   XBR0_Init();
   PCA_Init();
   SMB_init();
-  printf("init done\r\n");
+
   count = 0;
-	i2c_start();
-	
-	printf("Started i2c\r\n");
+	//i2c_start();
   while(1){
-  	
-    if(count % 4 == 0){
 
-	  unsigned char asdf[2];
-	  result = ReadRanger();
-      asdf[0] = 0x51; // write 0x51 to reg 0 of the ranger:
+    if(flag == 5){
 		
-	  printf("trying to read\r\n");
-
+	  unsigned char asdf[2];
+	  flag = 0;
+      asdf[0] = 0x51; // write 0x51 to reg 0 of the ranger:
+	  result = ReadRanger();
       i2c_write_data(0xE0, 0, asdf, 1); // write one byte of data to reg 0 at addr
 	  //printf("ready to read the ranger");
-      printf("Range %u", result);
+      
+	  printf("Range %u\r\n", result);
     }
   }
 }
@@ -69,8 +68,8 @@ void main(void)
 void Port_Init()
 {
     P1MDOUT |= 0x04;  //set output pin for CEX2 in push-pull mode
-	P0MDOUT &= 0b11111001;
-	P0 |= ~0b11111001;
+	P0MDOUT &= 0b11110011;
+	P0 |= ~0b11110011;
 }
 
 //-----------------------------------------------------------------------------
@@ -111,12 +110,14 @@ void PCA_Init(void)
 //
 void PCA_ISR ( void ) __interrupt 9
 {
+	
 	if(CF){
 		CF = 0;
 		PCA0 = 28670;
-
+		flag += 1;
 		count += 1;
 	}
+	
 }
 
 void Steering_Servo()
