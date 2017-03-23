@@ -12,7 +12,9 @@ void XBR0_Init();
 void Steering_Servo(void);
 void PCA_ISR ( void ) __interrupt 9;
 void SMB_init(void);
-unsigned int ReadRanger();
+unsigned int ReadRanger(void);
+unsigned int ReadCompass(void);
+
 //-----------------------------------------------------------ll------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -24,15 +26,16 @@ unsigned int DRIVE_PW = 0;
 unsigned int val;
 int count;
 char input;
-unsigned int result = 0;
+unsigned int ranger = 0;
 unsigned int flag = 0;
+unsigned int compFlag = 0;
+unsigned int heading = 0;
 
 //-----------------------------------------------------------------------------
 // Main Function
 //-----------------------------------------------------------------------------
-void main(void)            
+void main(void)
 {
-\
     // initialize board
   Sys_Init();
   putchar(' '); //the quotes in this line may not format correctly
@@ -46,15 +49,23 @@ void main(void)
   while(1){
 
     if(flag == 5){
-		
-	  unsigned char asdf[2];
-	  flag = 0;
+
+      unsigned char asdf[2];
+      flag = 0;
       asdf[0] = 0x51; // write 0x51 to reg 0 of the ranger:
-	  result = ReadRanger();
+      ranger = ReadRanger();
       i2c_write_data(0xE0, 0, asdf, 1); // write one byte of data to reg 0 at addr
-	  //printf("ready to read the ranger");
-      
-	  printf("Range %u\r\n", result);
+      //printf("ready to read the ranger");
+
+    }
+    if(compFlag == 2){
+      heading = ReadCompass();
+
+    }
+    //Print here to not slow down
+    if(count % 4 == 0){
+      printf("Range %u\r\n", ranger);
+      printf("Heading %u\r\n", heading)
     }
   }
 }
@@ -81,7 +92,7 @@ void Port_Init()
 void XBR0_Init()
 {
     XBR0 = 0x27;  //configure crossbar as directed in the laboratory
-	 
+
 }
 
 //-----------------------------------------------------------------------------
@@ -110,14 +121,15 @@ void PCA_Init(void)
 //
 void PCA_ISR ( void ) __interrupt 9
 {
-	
+
 	if(CF){
 		CF = 0;
 		PCA0 = 28670;
 		flag += 1;
+    compFlag += 1;
 		count += 1;
 	}
-	
+
 }
 
 void Steering_Servo()
@@ -166,6 +178,16 @@ void Steering_Servo()
 void SMB_init(void){
 	SMB0CR = 0x93;
 	ENSMB=1;
+}
+
+unsigned int ReadCompass(void){
+  unsigned char addr = 0xC0; // the address of the sensor, 0xC0 for the compass
+  unsigned char Data[2]; // Data is an array with a length of 2
+  unsigned int heading; // the heading returned in degrees between 0 and 3599
+  i2c_read_data(addr, 2, Data, 2); // read two byte, starting at reg 2
+  heading =(((unsigned int)Data[0] << 8) | Data[1]); //combine the two values
+   //heading has units of 1/10 of a degree
+  return heading; // the heading returned in degrees between 0 and 3599
 }
 
 
