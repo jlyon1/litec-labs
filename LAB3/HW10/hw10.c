@@ -1,4 +1,6 @@
 /*Homework 10. Code for adjusting speed and sterr */
+/* This code was worked on by Akhil Jacob, Joey Lyon, and Donovan Gonzales*/
+
 #include <c8051_SDCC.h>
 #include <stdio.h>
 #include <stdlib.h>
