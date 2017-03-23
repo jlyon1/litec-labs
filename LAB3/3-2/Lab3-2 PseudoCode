@@ -1,0 +1,22 @@
+compiler directives
+declare global variables
+function prototypes
+main function
+	declare local variables
+  configure IO Ports
+  Configure crossbar
+  initialize timer
+  
+  begin infinite while loop
+    if flag is 5
+      initialize unsigned char asdf[2];
+      reset flag to = 0;
+      set asdf[0] to 0x51;
+      set variable ranger  to ReadRanger();
+      read and write data to 0 register  using i2c_write_data(0xE0, 0, asdf, 1); 
+    if compflag =2 
+      set heading to readHeading();
+    if count is moddable by 4
+      print ranger value
+      print header value
+  end infiniite while loop
