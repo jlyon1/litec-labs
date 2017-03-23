@@ -47,8 +47,101 @@ void main(void)
 
   count = 0;
 	//i2c_start();
-  while(1){
+  count = 0;
+    //print beginning message
+    printf("Embedded Control Steering Calibration\n");
 
+    PW = PW_CENTER;
+	DRIVE_PW = PW_CENTER;
+	val = 0xFFFF - 2760;
+	PCA0CP0 = val;
+
+	PCA0CP2 = val;
+	while(count < 60){
+		printf("initializing \r\n");
+	}
+	printf("\r\nCalibration press c when centered");
+
+
+	while(input != 'c'){
+
+		input = getchar();
+    	if(input == 'l')  // single character input to decrease the pulsewidth
+    	{
+			printf("\r\nturn left\r\n");
+
+			PW -= 10;
+        	if(PW < PW_MIN){  // check if less than pulsewidth minimum
+        		PW = PW_MIN;    // set SERVO_PW to a minimum value
+			}
+    	}
+    	else if(input == 'r')  // single character input to increase the pulsewidth
+    	{
+       		printf("\r\nturn right\r\n");
+
+			PW += 10;
+        	if(PW > PW_MAX)  // check if pulsewidth maximum exceeded
+        		PW = PW_MAX;     // set PW to a maximum value
+		}
+		PCA0CP0 = 0xFFFF - PW;
+	}
+	PW_CENTER = PW;
+	printf("\r\nCalibration press v when left");
+
+
+	while(input != 'v'){
+
+		input = getchar();
+    	if(input == 'l')  // single character input to decrease the pulsewidth
+    	{
+			printf("\r\nturn left\r\n");
+
+			PW -= 10;
+        	if(PW < PW_MIN){  // check if less than pulsewidth minimum
+        		PW = PW_MIN;    // set SERVO_PW to a minimum value
+			}
+    	}
+    	else if(input == 'r')  // single character input to increase the pulsewidth
+    	{
+       		printf("\r\nturn right\r\n");
+
+			PW += 10;
+        	if(PW > PW_MAX)  // check if pulsewidth maximum exceeded
+        		PW = PW_MAX;     // set PW to a maximum value
+		}
+		PCA0CP0 = 0xFFFF - PW;
+	}
+	PW_MIN = PW;
+	printf("\r\nDone, left: %d",PW_MIN);
+		printf("\r\nCalibration press b when right");
+
+
+	while(input != 'c'){
+
+		input = getchar();
+    	if(input == 'l')  // single character input to decrease the pulsewidth
+    	{
+			printf("\r\nturn left\r\n");
+
+			PW -= 10;
+        	if(PW < PW_MIN){  // check if less than pulsewidth minimum
+        		PW = PW_MIN;    // set SERVO_PW to a minimum value
+			}
+    	}
+    	else if(input == 'r')  // single character input to increase the pulsewidth
+    	{
+       		printf("\r\nturn right\r\n");
+
+			PW += 10;
+        	if(PW > PW_MAX)  // check if pulsewidth maximum exceeded
+        		PW = PW_MAX;     // set PW to a maximum value
+		}
+		PCA0CP0 = 0xFFFF - PW;
+	}
+	PW_MAX = PW;
+	printf("\r\nDone, right: %d",PW_MAX);
+  while(1){
+    Steering_Servo();
     if(flag == 5){
 
       unsigned char asdf[2];
