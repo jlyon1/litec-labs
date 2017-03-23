@@ -51,13 +51,14 @@ void main(void)
     if(flag == 4){
       unsigned char Software_Version = 0;
       unsigned char Data[2];
-      unsigned int range =0;
+      unsigned int light_value =0;
       unsigned char addr=0xE0; // the address of the ranger is 0xE0
+      unsigned char asdf[2];
+
       i2c_read_data(addr, 0, Data, 1); // read one byte, starting at reg 0
       Software_Version = Data[0];
-      range = (((unsigned int)Data[0] << 8) | Data[1]);
-
-      unsigned char asdf[2];
+      i2c_read_data(addr, 1, Data, 1); // read one byte, starting at reg 0
+      light_value = Data[0];
       flag = 0;
       /*Ping the ranger*/
       asdf[0] = 0x51; // write 0x51 to reg 0 of the ranger:
