@@ -33,12 +33,13 @@ unsigned int flag = 0;
 unsigned int compFlag = 0;
 unsigned int heading = 0;
 int heading_error = 0;
-int heading_k = 0.99;
+float heading_k = 0.99;
 int heading_target = 900;
 int drive_error = 0;
-int drive_k = 0.01;
+float drive_k = 0.91;
 int drive_target = 2760;
 __sbit __at 0xB7 ss;
+
 //-----------------------------------------------------------------------------
 // Main Function
 //-----------------------------------------------------------------------------
@@ -51,7 +52,11 @@ void main(void)
   Port_Init();
   XBR0_Init();
   PCA_Init();
+
+  PCA0CP2 = PW_CENTER;
+ 
   SMB_init();
+
   //reset timer counterx`x
   count = 0;
 //  calibrateSteering(); //calibrate steering from left to right
@@ -59,16 +64,26 @@ void main(void)
   while (1) {
     //printf("in while%u\r\n",compFlag);
     if (flag == 5) {
+
       unsigned char asdf[2];
       flag = 0;
       asdf[0] = 0x51; // write 0x51 to reg 0 of the ranger:
       ranger = ReadRanger();
       i2c_write_data(0xE0, 0, asdf, 1); // write one byte of data to reg 0 at addr
+      //printf("ready to read the ranger");
+
     }
     if (compFlag == 2) {
       heading = ReadCompass();
       compFlag = 0;
     }
+    //Print here to not slow down
+    if (count % 40 == 0) {
+      printf("Range %u\r\n", ranger);
+      printf("Heading %u\r\n", heading);
+    }
+
+
     // input = getchar();
     // if (input == 'l')
     // {drive_target += 10;}
@@ -107,15 +122,9 @@ void main(void)
     }
     Steering_Servo();
 
-    //Print here to not slow down
-    if (count % 40 == 0) {
-      count = 1;
-      printf("Range %u\r\n", ranger);
-      printf("Heading %u\r\n", heading);
-    }
+
   }
 }
-
 //-----------------------------------------------------------------------------
 // Port_Init
 //-----------------------------------------------------------------------------
@@ -264,18 +273,34 @@ void calibrateSteering(void) {
 
 void Steering_Servo()
 {
-//	printf("SS %u", ss);
+//  printf("SS %u", ss);
   if (1) {
     heading_error = heading_target - heading;
     PW = (heading_k * (heading_error) + PW_CENTER);
     drive_error = drive_target - ranger;
     DRIVE_PW = (drive_k * (drive_error) + PW_CENTER);
+    if (ranger > 30 && ranger < 40)
+    {
+      DRIVE_PW = PW_CENTER;
+    }
+    if (count % 40 == 0) {
+      printf("PW: %u\r\n", PW);
+      printf("DRIVE_PW: %u\r\n", DRIVE_PW);
+      printf("Heading error: %u\r\n================\r\n", heading_error);
+    }
+    if (DRIVE_PW > PW_MAX) {
+      DRIVE_PW = PW_MAX;
+    }
 
-	if (count % 40 == 0) {
-    	printf("PW: %u\r\n", PW);
-    	printf("DRIVE_PW: %u\r\n", DRIVE_PW);
-		printf("Heading error: %u\r\n================\r\n", heading_error);
-	}
+    if (DRIVE_PW < PW_MIN) {
+      DRIVE_PW = PW_MIN;
+    }
+    if (PW > PW_MAX) {
+      PW = PW_MAX;
+    }
+    if (PW < PW_MIN) {
+      PW = PW_MIN;
+    }
     PCA0CP0 = 0xFFFF - PW;
     PCA0CP2 = 0xFFFF - DRIVE_PW;
   }
