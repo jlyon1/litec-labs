@@ -1,4 +1,4 @@
-/*Lab 3.1. Code for adjusting speed and sterr */
+/*Lab 3.1. Code for adjusting speed and steering*/
 #include <c8051_SDCC.h>
 #include <stdio.h>
 #include <stdlib.h>
