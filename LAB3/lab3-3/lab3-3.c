@@ -39,6 +39,7 @@ int drive_error = 0;
 float drive_k = 0.91;
 int drive_target = 2760;
 __sbit __at 0xB7 ss;
+int x = 0;
 
 //-----------------------------------------------------------------------------
 // Main Function
@@ -53,17 +54,17 @@ void main(void)
   XBR0_Init();
   PCA_Init();
 
-  PCA0CP2 = PW_CENTER;
- 
   SMB_init();
 
+  PCA0CP2 = PW_CENTER;
+  for ( x = 0; x < 300; x++) {printf("%u\r\n", x);}
   //reset timer counterx`x
   count = 0;
 //  calibrateSteering(); //calibrate steering from left to right
 
   while (1) {
     //printf("in while%u\r\n",compFlag);
-    if (flag == 5) {
+    if (flag >= 5) {
 
       unsigned char asdf[2];
       flag = 0;
@@ -73,7 +74,7 @@ void main(void)
       //printf("ready to read the ranger");
 
     }
-    if (compFlag == 2) {
+    if (compFlag >= 2) {
       heading = ReadCompass();
       compFlag = 0;
     }
@@ -273,21 +274,20 @@ void calibrateSteering(void) {
 
 void Steering_Servo()
 {
-//  printf("SS %u", ss);
+  //printf("SS %u", ss);
   if (1) {
+    //CALUCATE THE HEADING
     heading_error = heading_target - heading;
     PW = (heading_k * (heading_error) + PW_CENTER);
-    drive_error = drive_target - ranger;
-    DRIVE_PW = (drive_k * (drive_error) + PW_CENTER);
-    if (ranger > 30 && ranger < 40)
-    {
-      DRIVE_PW = PW_CENTER;
-    }
+
+    //PRINT STATEMENTS FOR DEBUGGING PURPOSES
     if (count % 40 == 0) {
       printf("PW: %u\r\n", PW);
-      printf("DRIVE_PW: %u\r\n", DRIVE_PW);
+      printf("drive error: %u\r\n", drive_error);
       printf("Heading error: %u\r\n================\r\n", heading_error);
     }
+
+    //MAKE SURE THAT THE PW ARE WITHIN BOUNDS
     if (DRIVE_PW > PW_MAX) {
       DRIVE_PW = PW_MAX;
     }
@@ -301,6 +301,27 @@ void Steering_Servo()
     if (PW < PW_MIN) {
       PW = PW_MIN;
     }
+
+    //ACCOUNT FOR RANGER STUFF
+    if (ranger < 10) {
+      DRIVE_PW = PW_MIN;
+    }
+    else if (ranger > 90) {
+      DRIVE_PW = PW_MAX;
+    }
+    else if (ranger > 30 && ranger < 40)
+    {
+      DRIVE_PW = PW_CENTER;
+    }
+    else if(ranger<30) {
+      
+       drive_error = drive_target - ranger;
+       DRIVE_PW = (-drive_k * (drive_error) + PW_CENTER);
+    }
+	else {
+	 	drive_error = drive_target - ranger;
+        DRIVE_PW = (drive_k * (drive_error) + PW_CENTER);
+	}
     PCA0CP0 = 0xFFFF - PW;
     PCA0CP2 = 0xFFFF - DRIVE_PW;
   }
