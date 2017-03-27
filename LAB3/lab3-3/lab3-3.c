@@ -31,12 +31,12 @@ char input;
 unsigned int ranger = 0;
 unsigned int flag = 0;
 unsigned int compFlag = 0;
-unsigned int heading = 0;
+int heading = 0;
 int heading_error = 0;
 float heading_k = 0.99;
 int heading_target = 900;
 int drive_error = 0;
-float drive_k = 0.91;
+float drive_k = 0.08;
 int drive_target = 2760;
 __sbit __at 0xB7 ss;
 int x = 0;
@@ -137,8 +137,8 @@ void Port_Init()
   P1MDOUT |= 0x04;  //set output pin for CEX2 in push-pull mode
   P0MDOUT &= 0b11110011;
   P0 |= ~0b11110011;
-  P3MDOUT |= 0xFF;
-  P3 &= 0x00;
+  P3MDOUT &= 0x00;
+  P3 |= 0xFF;
 }
 
 //-----------------------------------------------------------------------------
@@ -274,17 +274,26 @@ void calibrateSteering(void) {
 
 void Steering_Servo()
 {
-  //printf("SS %u", ss);
-  if (1) {
-    //CALUCATE THE HEADING
+  int myVal = 0;
+  if (ss) {
+
+
     heading_error = heading_target - heading;
+    if (heading_error > 1800 ){
+      heading_error -= 1800;
+	  heading_error*=-1;
+	  }
+    else if (heading_error < -1800){
+      heading_error += 1800;
+    heading_error *= -1;
+	}
     PW = (heading_k * (heading_error) + PW_CENTER);
 
     //PRINT STATEMENTS FOR DEBUGGING PURPOSES
     if (count % 40 == 0) {
-      printf("PW: %u\r\n", PW);
-      printf("drive error: %u\r\n", drive_error);
-      printf("Heading error: %u\r\n================\r\n", heading_error);
+      printf("Heading target: %u\r\n", heading_target);
+      printf("heading: %u\r\n", heading);
+      printf("Heading error: %d\r\n================\r\n", heading_error);
     }
 
     //MAKE SURE THAT THE PW ARE WITHIN BOUNDS
@@ -313,21 +322,19 @@ void Steering_Servo()
     {
       DRIVE_PW = PW_CENTER;
     }
-    else if(ranger<30) {
-      
-       drive_error = drive_target - ranger;
-       DRIVE_PW = (-drive_k * (drive_error) + PW_CENTER);
+    else if (ranger < 30) {
+      DRIVE_PW = (-31.6 * (20 - (ranger - 10)) + PW_CENTER);
     }
-	else {
-	 	drive_error = drive_target - ranger;
-        DRIVE_PW = (drive_k * (drive_error) + PW_CENTER);
-	}
+    else {
+
+      DRIVE_PW = (13.8 * (ranger - 40) + PW_CENTER);
+    }
     PCA0CP0 = 0xFFFF - PW;
     PCA0CP2 = 0xFFFF - DRIVE_PW;
   }
   else {
     printf("switch is off and stopping motors\r\n");
-    PCA0CP0 = 0xFFFF - PW;
+    PCA0CP0 = 0xFFFF - PW_CENTER;
     PCA0CP2 = 0xFFFF - PW_CENTER;
   }
 }
