@@ -1,0 +1,36 @@
+compiler directives
+declare global variables
+function prototypes
+main function
+	declare local variables
+  configure IO Ports
+  Configure crossbar
+  initialize timer
+
+  begin infinite while loop
+    if flag is 5
+      initialize unsigned char asdf[2];
+      reset flag to = 0;
+      set asdf[0] to 0x51;
+      set variable ranger  to ReadRanger();
+      read and write data to 0 register  using i2c_write_data(0xE0, 0, asdf, 1);
+    if compflag =2
+      set heading to readHeading();
+    heading_error = heading_target - heading
+    PW = headingMultiplier times heading_error plus centersterringvalue
+
+    Check that values are within acceptable steering ranges
+
+    if ranger distance is less than 10:
+        Drive full speed
+    if ranger distance is greater than 90:
+        Drive Full reverse
+    if Ranger distance is between 30 and 40:
+        Stop motors
+    else
+        drive error = drive_target - ranger
+        drivePw = drivemult * drive error + PW_CENTER
+    StrMotor = 0xFFFF - PW;
+    DRIVEmotor = 0xFFFF - DRIVE_PW
+
+  end infiniite while loop
