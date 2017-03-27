@@ -1,0 +1,24 @@
+compiler directives
+declare global variables
+function prototypes
+main function
+	declare local variables
+  configure IO Ports
+  Configure crossbar
+  initialize timer
+  begin infinite while loop
+  while nothing is typed on the keypad, wait
+  keypad variable = value on keypad
+  while key is still pressed, wait
+
+  my value = keypad value times 10
+
+  while nothing is typed on the keypad, wait
+  keypad variable = value on keypad
+  while key is still pressed, wait
+
+  my value = old my value plus value on keypad
+
+  print result to serial and keypad
+
+  end while loop
