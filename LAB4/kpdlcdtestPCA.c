@@ -53,7 +53,7 @@ void main(void)
     while (1)
     {
 		while(read_keypad() == 0xFF){
-		
+
 		}
         keypad = read_keypad();
         while(read_keypad() != 0xFF){
@@ -63,7 +63,7 @@ void main(void)
 		lcd_print("%c",keypad);
 		myNum = 10*(keypad - 0x30);
 		while(read_keypad() == 0xFF){
-		
+
 		}
         keypad = read_keypad();
 		lcd_print("%c",keypad);
