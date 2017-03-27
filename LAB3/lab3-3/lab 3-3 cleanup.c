@@ -1,5 +1,5 @@
 /*
-Lab 3.3 Code
+Lab 3.3 Code, cleaned up
 Akhil Jacob, Joey Lyon, Donovan Gonzales
 In this lab we adjusted the speed and steering using the ranger and the compass.
 */
