@@ -1,7 +1,7 @@
 /*
-Lab 3.3 Code 
+Lab 3.3 Code
 Akhil Jacob, Joey Lyon, Donovan Gonzales
-In this lab we adjusted the speed and steering using the ranger and the compass. 
+In this lab we adjusted the speed and steering using the ranger and the compass.
 */
 
 //-----------------------------------------------------------------------------
@@ -76,7 +76,7 @@ void main(void)
 
   // calibrate the drive motor
   PCA0CP2 = PW_CENTER;
-  while (counts < 60);
+  while (count < 60);
 
   // reset timer variable
   count = 0;
@@ -155,14 +155,9 @@ void PCA_Init(void)
 }
 
 //-----------------------------------------------------------------------------
-// PCA_ISR
+// PCA_ISR - Interrupt Service Routine for Programmable Counter Array Overflow Interrupt
 //-----------------------------------------------------------------------------
-//
-// Interrupt Service Routine for Programmable Counter Array Overflow Interrupt
-//
-void PCA_ISR ( void ) __interrupt 9
-{
-
+void PCA_ISR ( void ) __interrupt 9 {
   if (CF) {
     CF = 0;
     PCA0 = 28670;
@@ -170,82 +165,19 @@ void PCA_ISR ( void ) __interrupt 9
     compFlag += 1;
     count += 1;
   }
-
 }
 
-
-void steering_servo()
-{
-  int myVal = 0;
-  if (ss) {
-
-
-    heading_error = heading_target - heading;
-    if (heading_error > 1800 ) {
-      heading_error -= 1800;
-      heading_error *= -1;
-    }
-    else if (heading_error < -1800) {
-      heading_error += 1800;
-      heading_error *= -1;
-    }
-    PW = (heading_k * (heading_error) + PW_CENTER);
-
-    //PRINT STATEMENTS FOR DEBUGGING PURPOSES
-    if (count % 40 == 0) {
-      printf("Heading target: %u\r\n", heading_target);
-      printf("heading: %u\r\n", heading);
-      printf("Heading error: %d\r\n================\r\n", heading_error);
-    }
-
-    //MAKE SURE THAT THE PW ARE WITHIN BOUNDS
-    if (DRIVE_PW > PW_MAX) {
-      DRIVE_PW = PW_MAX;
-    }
-
-    if (DRIVE_PW < PW_MIN) {
-      DRIVE_PW = PW_MIN;
-    }
-    if (PW > PW_MAX) {
-      PW = PW_MAX;
-    }
-    if (PW < PW_MIN) {
-      PW = PW_MIN;
-    }
-
-    //ACCOUNT FOR RANGER STUFF
-    if (ranger < 10) {
-      DRIVE_PW = PW_MIN;
-    }
-    else if (ranger > 90) {
-      DRIVE_PW = PW_MAX;
-    }
-    else if (ranger > 30 && ranger < 40)
-    {
-      DRIVE_PW = PW_CENTER;
-    }
-    else if (ranger < 30) {
-      DRIVE_PW = (-31.6 * (20 - (ranger - 10)) + PW_CENTER);
-    }
-    else {
-
-      DRIVE_PW = (13.8 * (ranger - 40) + PW_CENTER);
-    }
-    PCA0CP0 = 0xFFFF - PW;
-    PCA0CP2 = 0xFFFF - DRIVE_PW;
-  }
-  else {
-    printf("switch is off and stopping motors\r\n");
-    PCA0CP0 = 0xFFFF - PW_CENTER;
-    PCA0CP2 = 0xFFFF - PW_CENTER;
-  }
-}
-
+//-----------------------------------------------------------------------------
+// SMB_init - i2c inits
+//-----------------------------------------------------------------------------
 void SMB_init(void) {
   SMB0CR = 0x93;
   ENSMB = 1;
 }
 
+//-----------------------------------------------------------------------------
+// ReadCompass - use i2c functions to read the compass value and return it
+//-----------------------------------------------------------------------------
 unsigned int ReadCompass(void) {
   unsigned char addr = 0xC0; // the address of the sensor, 0xC0 for the compass
   unsigned char Data[2]; // Data is an array with a length of 2
@@ -256,7 +188,9 @@ unsigned int ReadCompass(void) {
   return heading; // the heading returned in degrees between 0 and 3599
 }
 
-
+//-----------------------------------------------------------------------------
+// ReadRanger - use i2c functions to read the ranger value and return it
+//-----------------------------------------------------------------------------
 unsigned int ReadRanger()
 {
   unsigned char Data[2];
@@ -266,4 +200,79 @@ unsigned int ReadRanger()
   range = (((unsigned int)Data[0] << 8) | Data[1]);
 
   return range;
+}
+
+//-----------------------------------------------------------------------------
+// DRIVE MOTOR CONTROL - sets the drive control speed based on the ranger value
+//-----------------------------------------------------------------------------
+void drive_motor_control() {
+  if (ss) { // if slide switch modify drive value
+    // check the value of the ranger and set drive motor accordingly
+    if (ranger < 10) // ranger is < 10 cm then set max reverse
+      DRIVE_PW = PW_MIN;
+    else if (ranger > 90) // ranger is > 90 cm then set max forward
+      DRIVE_PW = PW_MAX;
+    else if (ranger > 30 && ranger < 40) // ranger is between 30 cm and 40 cm stop motor
+      DRIVE_PW = PW_CENTER;
+    else if (ranger < 30) // ranger is < 30 use equation
+      DRIVE_PW = (-31.6 * (20 - (ranger - 10)) + PW_CENTER);
+    else //all other cases (should only be when ranger is between 40 cm and 90 cm) use this eqn
+      DRIVE_PW = (13.8 * (ranger - 40) + PW_CENTER);
+
+    // check to make sure that the Pulse width is within bounds
+    if (DRIVE_PW > PW_MAX)
+      DRIVE_PW = PW_MAX;
+    if (DRIVE_PW < PW_MIN)
+      DRIVE_PW = PW_MIN; 
+
+    // set the drive motor to result
+    PCA0CP2 = 0xFFFF - DRIVE_PW;
+  }
+  else // if not slideswitch stop drive motors
+    PCA0CP2 = 0xFFFF - PW_CENTER;
+
+}
+
+//-----------------------------------------------------------------------------
+// STEEERING SERVO - sets the steering angle based on target and current compass reading
+//-----------------------------------------------------------------------------
+void steering_servo()
+{
+  if (ss) {//if slideswitch modify steering value
+    heading_error = heading_target - heading; 
+    // if the error is greater than +/- 180 deg then turn the other way
+    if (heading_error > 1800 ) {
+      heading_error -= 1800;
+      heading_error *= -1;
+    }
+    else if (heading_error < -1800) { 
+      heading_error += 1800;
+      heading_error *= -1;
+    }
+    // porportionally change the steering to reach target
+    PW = (heading_k * (heading_error) + PW_CENTER);
+
+    //PRINT STATEMENTS FOR DEBUGGING PURPOSES - print every few ms to prevent delay
+    if (count % 40 == 0) {
+      printf("Heading target: %u\r\n", heading_target);
+      printf("heading: %u\r\n", heading);
+      printf("Heading error: %d\r\n================\r\n", heading_error);
+    }
+
+    //MAKE SURE THAT THE PW ARE WITHIN BOUNDS
+    if (PW > PW_MAX) {
+      PW = PW_MAX;
+    }
+    if (PW < PW_MIN) {
+      PW = PW_MIN;
+    }
+
+    // set the steering
+    PCA0CP0 = 0xFFFF - PW;
+
+  }
+  else {//if not slideswitch center steering
+    printf("Switch is off and stopping motors\r\n");
+    PCA0CP0 = 0xFFFF - PW_CENTER;
+  }
 }
