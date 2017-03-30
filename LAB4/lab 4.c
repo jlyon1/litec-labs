@@ -82,6 +82,8 @@ void main(void)
   count = 0;
 
   //infinite while loop
+  lcd_clear();
+  lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
   while (1) {
 
     // wait so that ranger is not read to often
@@ -90,7 +92,7 @@ void main(void)
       flag = 0; // reset the flag variable
       data[0] = 0x51; // write 0x51 to reg 0 of the ranger:
       ranger = ReadRanger(); // read the value of the ranger
-      i2c_write_data(0xE0, 0, data, 1); // final ping to the ranger
+      i2c_write_data(0xE0, 0, data, 1); // finally ping to the ranger
     }
 
     // wait so compass isn't read too often
@@ -103,10 +105,13 @@ void main(void)
     if (count % 40 == 0) {
       printf("Range %u\r\n", ranger);
       printf("Heading %u\r\n", heading);
+      lcd_clear();
+      lcd_print("Heading: %u,\r\n Range: %u",heading, range);
     }
 
-    steering_servo();
-    drive_motor_control();
+
+    //steering_servo();
+    //drive_motor_control();
   }
 }
 //-----------------------------------------------------------------------------
@@ -223,7 +228,7 @@ void drive_motor_control() {
     if (DRIVE_PW > PW_MAX)
       DRIVE_PW = PW_MAX;
     if (DRIVE_PW < PW_MIN)
-      DRIVE_PW = PW_MIN; 
+      DRIVE_PW = PW_MIN;
 
     // set the drive motor to result
     PCA0CP2 = 0xFFFF - DRIVE_PW;
@@ -239,13 +244,13 @@ void drive_motor_control() {
 void steering_servo()
 {
   if (ss) {//if slideswitch modify steering value
-    heading_error = heading_target - heading; 
+    heading_error = heading_target - heading;
     // if the error is greater than +/- 180 deg then turn the other way
     if (heading_error > 1800 ) {
       heading_error -= 1800;
       heading_error *= -1;
     }
-    else if (heading_error < -1800) { 
+    else if (heading_error < -1800) {
       heading_error += 1800;
       heading_error *= -1;
     }
