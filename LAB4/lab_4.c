@@ -61,6 +61,8 @@ int drive_target = 2760;
 float drive_k = 0.08;
 float heading_k = 0.99;
 
+int desired_distance = 30; // 30 by default, so that it can be changed later
+
 //sbit inits
 __sbit __at 0xB7 ss;
 
@@ -90,6 +92,8 @@ void main(void)
   bool readGains = false;
   char key = "";
   int gainReadState = COMPASS_GAIN;
+  int tempForGainRead = 0;
+  int gainMult = 0;
   while (1) {
     if(read_keypad() != 0xFF){
       key = read_keypad();
@@ -97,8 +101,51 @@ void main(void)
         readGains == true;
       }
     }
-    while(readGains()){
 
+    while(readGains){
+      gainMult = 0;
+      if(gainReadState == COMPASS_GAIN){
+        lcd_clear();
+        lcd_print("Enter gain for compass and press #\n Note, this is multiplied by 10^-2\n");
+        while(key != '#'){
+          while(read_keypad() == 0xFF){
+
+          }
+          key = read_keypad();
+          lcd_print("%c",key);
+          if(tempForGainRead != 0){
+            tempForGainRead = tempForGainRead << 3;
+          }
+          tempForGainRead += (keypad - 0x30)
+
+          while(read_keypad() != 0xFF){
+            pause();
+          }
+        }
+        heading_k = tempForGainRead * .01;
+        gainReadState = RANGER_GAIN;
+      }else if(gainReadState == RANGER_GAIN){
+        lcd_clear();
+        lcd_print("Enter gain for ranger and press #\n Note, this is multiplied by 10^-2\n");
+        while(key != '#'){
+          while(read_keypad() == 0xFF){
+
+          }
+          key = read_keypad();
+          lcd_print("%c",key);
+          if(tempForGainRead != 0){
+            tempForGainRead = tempForGainRead << 3;
+          }
+          tempForGainRead += (keypad - 0x30)
+
+          while(read_keypad() != 0xFF){
+            pause();
+          }
+        }
+        heading_k = tempForGainRead * .01;
+        gainReadState = COMPASS_GAIN;
+        readGains = false;
+      }
     }
 
     // wait so that ranger is not read to often
@@ -232,12 +279,12 @@ void drive_motor_control() {
       DRIVE_PW = PW_MIN;
     else if (ranger > 90) // ranger is > 90 cm then set max forward
       DRIVE_PW = PW_MAX;
-    else if (ranger > 30 && ranger < 40) // ranger is between 30 cm and 40 cm stop motor
+    else if (ranger > desired_distance-5 && ranger < desired_distance+5) // ranger is between a range of desired distance stop motor
       DRIVE_PW = PW_CENTER;
-    else if (ranger < 30) // ranger is < 30 use equation
-      DRIVE_PW = (-31.6 * (20 - (ranger - 10)) + PW_CENTER);
+    else if (ranger < desired_distance) // ranger is < 30 use equation
+      DRIVE_PW = (-31.6 * ((int)((.666666)*(float)desired_distance)) - (ranger - (int)((.333333)*(float)desired_distance))) + PW_CENTER);
     else //all other cases (should only be when ranger is between 40 cm and 90 cm) use this eqn
-      DRIVE_PW = (13.8 * (ranger - 40) + PW_CENTER);
+      DRIVE_PW = (13.8 * (ranger - desired_distance) + PW_CENTER);
 
     // check to make sure that the Pulse width is within bounds
     if (DRIVE_PW > PW_MAX)
