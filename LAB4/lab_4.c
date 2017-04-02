@@ -33,6 +33,9 @@ void PCA_ISR ( void ) __interrupt 9;
 #define PW_MAX 3450
 #define PW_CENTER 2760
 
+#define COMPASS_GAIN 0
+#define RANGER_GAIN 1
+
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
@@ -84,7 +87,19 @@ void main(void)
   //infinite while loop
   lcd_clear();
   lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
+  bool readGains = false;
+  char key = "";
+  int gainReadState = COMPASS_GAIN;
   while (1) {
+    if(read_keypad() != 0xFF){
+      key = read_keypad();
+      if(key == '#'){ // Start reading gains
+        readGains == true;
+      }
+    }
+    while(readGains()){
+
+    }
 
     // wait so that ranger is not read to often
     if (flag >= 5) {
