@@ -35,6 +35,11 @@ void PCA_ISR ( void ) __interrupt 9;
 
 #define COMPASS_GAIN 0
 #define RANGER_GAIN 1
+#define FIRST_DRIVE_FWD 2
+#define SECOND_DRIVE_FWD 1
+#define STOP 1
+
+
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -91,7 +96,7 @@ void main(void)
   lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
   bool readGains = false;
   char key = "";
-  int gainReadState = COMPASS_GAIN;
+  int state = COMPASS_GAIN; // Reuse the same state variable to save memory
   int tempForGainRead = 0;
   int gainMult = 0;
   while (1) {
@@ -103,8 +108,12 @@ void main(void)
     }
 
     while(readGains){
+      PW = PW_CENTER;
+      PW_DRIVE = PW_CENTER; //Stop while entering values;
+      PCA0CP0 = 0xFFFF - PW;
+      PCA0CP2 = 0xFFFF - PW_DRIVE;
       gainMult = 0;
-      if(gainReadState == COMPASS_GAIN){
+      if(state == COMPASS_GAIN){
         lcd_clear();
         lcd_print("Enter gain for compass and press #\n Note, this is multiplied by 10^-2\n");
         while(key != '#'){
@@ -123,8 +132,8 @@ void main(void)
           }
         }
         heading_k = tempForGainRead * .01;
-        gainReadState = RANGER_GAIN;
-      }else if(gainReadState == RANGER_GAIN){
+        state = RANGER_GAIN;
+      }else if(state == RANGER_GAIN){
         lcd_clear();
         lcd_print("Enter gain for ranger and press #\n Note, this is multiplied by 10^-2\n");
         while(key != '#'){
@@ -143,7 +152,7 @@ void main(void)
           }
         }
         heading_k = tempForGainRead * .01;
-        gainReadState = COMPASS_GAIN;
+        state = COMPASS_GAIN;
         readGains = false;
       }
     }
@@ -165,8 +174,7 @@ void main(void)
 
     // print every few ms to prevent slowing down i2c communications
     if (count % 40 == 0) {
-      printf("Range %u\r\n", ranger);
-      printf("Heading %u\r\n", heading);
+      printf(";%u;%u;%u;%u\r\n", heading,ranger,heading_error,drive_error);
       lcd_clear();
       lcd_print("Heading: %u,\r\n Range: %u",heading, range);
     }
