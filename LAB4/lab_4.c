@@ -25,7 +25,7 @@ void drive_motor_control(void);
 unsigned int ReadCompass(void);
 unsigned int ReadRanger(void);
 void PCA_ISR ( void ) __interrupt 9;
-
+void read_keypad_values();
 //-----------------------------------------------------------------------------
 // DEFINITIONS -  these are constant values
 //-----------------------------------------------------------------------------
@@ -93,82 +93,18 @@ void main(void)
   lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
 
   while (1) {
-    if(read_keypad() != 0xFF){
+    if (read_keypad() != 0xFF) {
       key = read_keypad();
-	  printf("%u\r\n",key);
-      if(key == 35){ // Start reading gains
+      printf("%u\r\n", key);
+      if (key == 35) { // Start reading gains
         readGains = 1;
-		compFlag = 0;
-		flag = 0;
+        compFlag = 0;
+        flag = 0;
       }
     }
-	key = 0;
+    key = 0;
 
-    while(readGains){
-  		while(compFlag < 100){
-			printf("wait");
-		}
-		
-        if(gainReadState == COMPASS_GAIN){
-          lcd_clear();
-          lcd_print("Enter gain for compass and press #\n Note, this is multiplied by 10^-2\n");
-          while(key != 0x23){
-            while(read_keypad() == 0xFF){
-
-            }
-            key = read_keypad();
-            lcd_print("%c",key);
-            if(tempForGainRead != 0 && key != 0x23){
-              tempForGainRead = tempForGainRead *10;
-			  
-            }
-			if(key != 0x23){
-            	tempForGainRead += (key - 0x30);
-				printf("val %u\r\n", tempForGainRead);
-			}
-            while(read_keypad() != 0xFF){
-
-            }
-          }
-          heading_k = (float)((float)tempForGainRead * .01f);
-          gainReadState = RANGER_GAIN;
-		  key = 0;
-		  tempForGainRead = 0;
-		  
-        }else if(gainReadState == RANGER_GAIN){
-		  
-		  while(flag < 100){
-			printf("wait");
-		  }
-		
-          lcd_clear();
-          lcd_print("Enter gain for ranger and press #\n Note, this is multiplied by 10^-2\n");
-          while(key != 0x23){
-            while(read_keypad() == 0xFF){
-
-            }
-            key = read_keypad();
-            lcd_print("%c",key);
-            if(tempForGainRead != 0){
-              tempForGainRead = tempForGainRead *10;
-            }
-            if(key != 0x23){
-            	tempForGainRead += (key - 0x30);
-				printf("val %u\r\n", tempForGainRead);
-			}
-            while(read_keypad() != 0xFF){
-
-            }
-          }
-		  key = 0;
-          drive_k = (float)tempForGainRead * .01;
-          gainReadState = COMPASS_GAIN;
-		  printf("heading_k %u, ranger_k %u\r\n",heading_k,drive_k);
-		  tempForGainRead = 0;
-          readGains = 0;
-        }
-    }
-
+    read_keypad_values();
     // wait so that ranger is not read to often
     if (flag >= 5) {
       unsigned char data[2]; // array to store the ranger data
@@ -189,7 +125,7 @@ void main(void)
       printf("Range %u\r\n", ranger);
       printf("Heading %u\r\n", heading);
       lcd_clear();
-      lcd_print("Heading: %u,\r\n Range: %u",heading, ranger);
+      lcd_print("Heading: %u,\r\n Range: %u", heading, ranger);
     }
 
 
@@ -363,4 +299,75 @@ void steering_servo()
     printf("Switch is off and stopping motors\r\n");
     PCA0CP0 = 0xFFFF - PW_CENTER;
   }
+}
+//-----------------------------------------------------------------------------
+// READ KEYPAD VALUES - this reads new gains from the keypad and displays some messages when pound 
+//                      key is pressed.
+//-----------------------------------------------------------------------------
+void read_keypad_values(void) {
+  while (readGains) {
+    while (compFlag < 100) {
+      printf("wait");
+    }
+
+    if (gainReadState == COMPASS_GAIN) {
+      lcd_clear();
+      lcd_print("Enter gain for compass and press #\n Note, this is multiplied by 10^-2\n");
+      while (key != 0x23) {
+        while (read_keypad() == 0xFF) {
+
+        }
+        key = read_keypad();
+        lcd_print("%c", key);
+        if (tempForGainRead != 0 && key != 0x23) {
+          tempForGainRead = tempForGainRead * 10;
+
+        }
+        if (key != 0x23) {
+          tempForGainRead += (key - 0x30);
+          printf("val %u\r\n", tempForGainRead);
+        }
+        while (read_keypad() != 0xFF) {
+
+        }
+      }
+      heading_k = (float)((float)tempForGainRead * .01f);
+      gainReadState = RANGER_GAIN;
+      key = 0;
+      tempForGainRead = 0;
+
+    } else if (gainReadState == RANGER_GAIN) {
+
+      while (flag < 100) {
+        printf("wait");
+      }
+
+      lcd_clear();
+      lcd_print("Enter gain for ranger and press #\n Note, this is multiplied by 10^-2\n");
+      while (key != 0x23) {
+        while (read_keypad() == 0xFF) {
+
+        }
+        key = read_keypad();
+        lcd_print("%c", key);
+        if (tempForGainRead != 0) {
+          tempForGainRead = tempForGainRead * 10;
+        }
+        if (key != 0x23) {
+          tempForGainRead += (key - 0x30);
+          printf("val %u\r\n", tempForGainRead);
+        }
+        while (read_keypad() != 0xFF) {
+
+        }
+      }
+      key = 0;
+      drive_k = (float)tempForGainRead * .01;
+      gainReadState = COMPASS_GAIN;
+      printf("heading_k %u, ranger_k %u\r\n", heading_k, drive_k);
+      tempForGainRead = 0;
+      readGains = 0;
+    }
+  }
+
 }
