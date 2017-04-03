@@ -87,7 +87,6 @@ void main(void)
   // calibrate the drive motor
   PCA0CP2 = PW_CENTER;
   while (count < 60);
-
   // reset timer variable
   count = 0;
 
@@ -96,7 +95,9 @@ void main(void)
   lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
   bool readGains = false;
   char key = "";
+  float b_voltage;
   int state = COMPASS_GAIN; // Reuse the same state variable to save memory
+  unsigned int flag = 0;
   int tempForGainRead = 0;
   int gainMult = 0;
   while (1) {
@@ -170,6 +171,7 @@ void main(void)
     if (compFlag >= 2) {
       heading = ReadCompass(); // read compass values
       compFlag = 0; // reset the compass flag
+      b_voltage = (float)read_AD_input(1) * (15.0/255.0);
     }
 
     // print every few ms to prevent slowing down i2c communications
