@@ -104,6 +104,9 @@ void main(void)
         compFlag = 0;
         flag = 0;
       }
+      if (key == 42){
+        readGains = 2;
+      }
     }
     key = 0;
 
@@ -351,8 +354,38 @@ void steering_servo()
 //                      key is pressed.
 //-----------------------------------------------------------------------------
 void read_keypad_values(void) {
-  while (readGains) {
-    while (compFlag < 100) {
+  while(readGains == 2){
+    while (compFlag < 20) {
+      printf("wait");
+    }
+    lcd_clear();
+    lcd_print("Enter heading for compass and press #\n");
+    tempForGainRead = 0;
+    while (key != 0x23) {
+      while (read_keypad() == 0xFF) {
+
+      }
+      key = read_keypad();
+      lcd_print("%c", key);
+      if (tempForGainRead != 0 && key != 0x23) {
+        tempForGainRead = tempForGainRead * 10;
+
+      }
+      if (key != 0x23) {
+        tempForGainRead += (key - 0x30);
+        printf("val %u\r\n", tempForGainRead);
+      }
+      while (read_keypad() != 0xFF) {
+
+      }
+    }
+    heading_target = tempForGainRead;
+    tempForGainRead = 0;
+    readGains = 0;
+
+  }
+  while (readGains == 1) {
+    while (compFlag < 20) {
       printf("wait");
     }
 
