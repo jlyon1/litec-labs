@@ -35,11 +35,6 @@ void PCA_ISR ( void ) __interrupt 9;
 
 #define COMPASS_GAIN 0
 #define RANGER_GAIN 1
-#define FIRST_DRIVE_FWD 2
-#define SECOND_DRIVE_FWD 1
-#define STOP 1
-
-
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -50,7 +45,7 @@ unsigned int DRIVE_PW = 0;
 
 // input and timer init
 int count;
-char input;
+char key;
 
 // ranger and compass value inits
 int heading = 0;
@@ -65,8 +60,10 @@ int drive_error = 0;
 int drive_target = 2760;
 float drive_k = 0.08;
 float heading_k = 0.99;
+int tempForGainRead = 0;
 
-int desired_distance = 30; // 30 by default, so that it can be changed later
+int readGains = 0;
+int gainReadState = COMPASS_GAIN;
 
 //sbit inits
 __sbit __at 0xB7 ss;
@@ -87,75 +84,89 @@ void main(void)
   // calibrate the drive motor
   PCA0CP2 = PW_CENTER;
   while (count < 60);
+
   // reset timer variable
   count = 0;
 
   //infinite while loop
   lcd_clear();
   lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
-  bool readGains = false;
-  char key = "";
-  float b_voltage;
-  int state = COMPASS_GAIN; // Reuse the same state variable to save memory
-  unsigned int flag = 0;
-  int tempForGainRead = 0;
-  int gainMult = 0;
+
   while (1) {
     if(read_keypad() != 0xFF){
       key = read_keypad();
-      if(key == '#'){ // Start reading gains
-        readGains == true;
+	  printf("%u\r\n",key);
+      if(key == 35){ // Start reading gains
+        readGains = 1;
+		compFlag = 0;
+		flag = 0;
       }
     }
+	key = 0;
 
     while(readGains){
-      PW = PW_CENTER;
-      PW_DRIVE = PW_CENTER; //Stop while entering values;
-      PCA0CP0 = 0xFFFF - PW;
-      PCA0CP2 = 0xFFFF - PW_DRIVE;
-      gainMult = 0;
-      if(state == COMPASS_GAIN){
-        lcd_clear();
-        lcd_print("Enter gain for compass and press #\n Note, this is multiplied by 10^-2\n");
-        while(key != '#'){
-          while(read_keypad() == 0xFF){
+  		while(compFlag < 100){
+			printf("wait");
+		}
+		
+        if(gainReadState == COMPASS_GAIN){
+          lcd_clear();
+          lcd_print("Enter gain for compass and press #\n Note, this is multiplied by 10^-2\n");
+          while(key != 0x23){
+            while(read_keypad() == 0xFF){
 
-          }
-          key = read_keypad();
-          lcd_print("%c",key);
-          if(tempForGainRead != 0){
-            tempForGainRead = tempForGainRead << 3;
-          }
-          tempForGainRead += (keypad - 0x30)
+            }
+            key = read_keypad();
+            lcd_print("%c",key);
+            if(tempForGainRead != 0 && key != 0x23){
+              tempForGainRead = tempForGainRead *10;
+			  
+            }
+			if(key != 0x23){
+            	tempForGainRead += (key - 0x30);
+				printf("val %u\r\n", tempForGainRead);
+			}
+            while(read_keypad() != 0xFF){
 
-          while(read_keypad() != 0xFF){
-            pause();
+            }
           }
+          heading_k = (float)((float)tempForGainRead * .01f);
+          gainReadState = RANGER_GAIN;
+		  key = 0;
+		  tempForGainRead = 0;
+		  
+        }else if(gainReadState == RANGER_GAIN){
+		  
+		  while(flag < 100){
+			printf("wait");
+		  }
+		
+          lcd_clear();
+          lcd_print("Enter gain for ranger and press #\n Note, this is multiplied by 10^-2\n");
+          while(key != 0x23){
+            while(read_keypad() == 0xFF){
+
+            }
+            key = read_keypad();
+            lcd_print("%c",key);
+            if(tempForGainRead != 0){
+              tempForGainRead = tempForGainRead *10;
+            }
+            if(key != 0x23){
+            	tempForGainRead += (key - 0x30);
+				printf("val %u\r\n", tempForGainRead);
+			}
+            while(read_keypad() != 0xFF){
+
+            }
+          }
+		  key = 0;
+          drive_k = (float)tempForGainRead * .01;
+          gainReadState = COMPASS_GAIN;
+		  printf("heading_k %u, ranger_k %u\r\n",heading_k,drive_k);
+		  tempForGainRead = 0;
+          readGains = 0;
         }
-        heading_k = tempForGainRead * .01;
-        state = RANGER_GAIN;
-      }else if(state == RANGER_GAIN){
-        lcd_clear();
-        lcd_print("Enter gain for ranger and press #\n Note, this is multiplied by 10^-2\n");
-        while(key != '#'){
-          while(read_keypad() == 0xFF){
-
-          }
-          key = read_keypad();
-          lcd_print("%c",key);
-          if(tempForGainRead != 0){
-            tempForGainRead = tempForGainRead << 3;
-          }
-          tempForGainRead += (keypad - 0x30)
-
-          while(read_keypad() != 0xFF){
-            pause();
-          }
-        }
-        heading_k = tempForGainRead * .01;
-        state = COMPASS_GAIN;
-        readGains = false;
-      }
     }
 
     // wait so that ranger is not read to often
@@ -171,19 +182,19 @@ void main(void)
     if (compFlag >= 2) {
       heading = ReadCompass(); // read compass values
       compFlag = 0; // reset the compass flag
-      b_voltage = (float)read_AD_input(1) * (15.0/255.0);
     }
 
     // print every few ms to prevent slowing down i2c communications
     if (count % 40 == 0) {
-      printf(";%u;%u;%u;%u\r\n", heading,ranger,heading_error,drive_error);
+      printf("Range %u\r\n", ranger);
+      printf("Heading %u\r\n", heading);
       lcd_clear();
-      lcd_print("Heading: %u,\r\n Range: %u",heading, range);
+      lcd_print("Heading: %u,\r\n Range: %u",heading, ranger);
     }
 
 
-    //steering_servo();
-    //drive_motor_control();
+    steering_servo();
+    drive_motor_control();
   }
 }
 //-----------------------------------------------------------------------------
@@ -289,12 +300,12 @@ void drive_motor_control() {
       DRIVE_PW = PW_MIN;
     else if (ranger > 90) // ranger is > 90 cm then set max forward
       DRIVE_PW = PW_MAX;
-    else if (ranger > desired_distance-5 && ranger < desired_distance+5) // ranger is between a range of desired distance stop motor
+    else if (ranger > 30 && ranger < 40) // ranger is between 30 cm and 40 cm stop motor
       DRIVE_PW = PW_CENTER;
-    else if (ranger < desired_distance) // ranger is < 30 use equation
-      DRIVE_PW = (-31.6 * ((int)((.666666)*(float)desired_distance)) - (ranger - (int)((.333333)*(float)desired_distance))) + PW_CENTER);
+    else if (ranger < 30) // ranger is < 30 use equation
+      DRIVE_PW = (-31.6 * (20 - (ranger - 10)) + PW_CENTER);
     else //all other cases (should only be when ranger is between 40 cm and 90 cm) use this eqn
-      DRIVE_PW = (13.8 * (ranger - desired_distance) + PW_CENTER);
+      DRIVE_PW = (13.8 * (ranger - 40) + PW_CENTER);
 
     // check to make sure that the Pulse width is within bounds
     if (DRIVE_PW > PW_MAX)
