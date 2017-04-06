@@ -1,0 +1,27 @@
+compiler directives
+declare global variables
+function prototypes
+main function
+	declare local variables
+  	configure IO Ports
+  	Configure crossbar
+ 	initialize timer
+ 	begin infinite while loop
+ 		if read keypad is pound key
+ 			read new gains
+ 		update ranger value
+ 		update compass value
+ 		print ranger compass and any other necessary values
+ 		update lcd display with information
+ 		update steering value based on porpotional control using current heading
+
+ 		if state == 0
+ 			drive forward until an object is less than 30 cm away
+ 		if state == 1
+ 			use porportional control to maintain a certain distance away from the object
+ 			if object goes past a certain distance
+ 				move to next state
+ 		if state == 2
+ 			drive forward until and object is less than 20 cm away and then stop
+ 	end infinite while loop
+ 	
