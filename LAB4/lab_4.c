@@ -1,7 +1,8 @@
 /*
-Lab 3.3 Code, cleaned up
+Lab 4 Code, cleaned up
 Akhil Jacob, Joey Lyon, Donovan Gonzales
-In this lab we adjusted the speed and steering using the ranger and the compass.
+Read and process sensor input to control the
+steering and speed of the car depending on external conditions.
 */
 
 //-----------------------------------------------------------------------------
@@ -48,6 +49,8 @@ unsigned int DRIVE_PW = 0;
 int count;
 char key;
 
+float b_voltage;
+
 // ranger and compass value inits
 int heading = 0;
 unsigned int flag = 0;
@@ -71,6 +74,23 @@ int motorControlState = 0 ;
 //sbit inits
 __sbit __at 0xB7 ss;
 
+unsigned char read_AD_input(unsigned char n)
+{
+	AMX1SL = n; /* Set P1.n as the analog input for ADC1 */
+	ADC1CN = ADC1CN & ~0x20; /* Clear the “Conversion Completed” flag */
+	ADC1CN = ADC1CN | 0x10; /* Initiate A/D conversion */
+	while ((ADC1CN & 0x20) == 0x00); /* Wait for conversion to complete */
+	return ADC1; /* Return digital value in ADC1 register */
+}
+
+void ADC_Init(void)
+{
+	REF0CN = 0x03; /* Set Vref to use internal reference voltage (2.4V) */
+	ADC1CN = 0x80; /* Enable A/D converter (ADC1) */
+	ADC1CF |= 0x01; /* Set A/D converter gain to 1 */
+}
+
+
 //-----------------------------------------------------------------------------
 // Main Function
 //-----------------------------------------------------------------------------
@@ -83,7 +103,7 @@ void main(void)
   XBR0_Init();
   PCA_Init();
   SMB_init();
-
+  ADC_Init();
   // calibrate the drive motor
   PCA0CP2 = PW_CENTER;
   while (count < 60);
@@ -126,12 +146,13 @@ void main(void)
     if (compFlag >= 2) {
       heading = ReadCompass(); // read compass values
       compFlag = 0; // reset the compass flag
+      b_voltage = (float)read_AD_input(1) * (15.0/255.0);
     }
 
     // print every few ms to prevent slowing down i2c communications
     if (count % 40 == 0) {
-      printf("Range %u\r\n", ranger);
-      printf("Heading %u\r\n", heading);
+      printf("%u;%u;%u;%f\r\n", count,ranger,heading,b_voltage);
+
       lcd_clear();
       if (motorControlState == 3)
         lcd_print("Heading: %u,\n Range: %u \n Done!", heading, ranger);
@@ -161,6 +182,8 @@ void main(void)
 //
 void Port_Init()
 {
+  P1MDIN &= ~0x02; //set pin 1 for analog input
+  P1MDOUT &= ~0x02; // Set to open drain
   P1MDOUT |= 0x04;  //set output pin for CEX2 in push-pull mode
   P0MDOUT &= 0b11110011;
   P0 |= ~0b11110011;
@@ -256,7 +279,7 @@ void drive_motor_control() {
         motorControlState++;
       else { // if object no found drive forward at 75% power
         DRIVE_PW = PW_MAX ;
-        printf("looking for something to follow\r\n");
+        //printf("looking for something to follow\r\n");
         // PCA0CP2 = 0xFFFF - DRIVE_PW;
       }
     }
@@ -264,12 +287,12 @@ void drive_motor_control() {
       DRIVE_PW = drive_k * (ranger - 30) + PW_CENTER;
       if (ranger < 30) // ranger is < 30 use equation
         DRIVE_PW = (-(drive_k * 8) * (20 - (ranger - 10)) + PW_CENTER);
-      printf("currently following an object\r\n");
+      //printf("currently following an object\r\n");
       if (ranger > 100) // anything further than 100 cm is considered losing the object
         motorControlState++;
     }
     else if (motorControlState == 2 ) {
-      printf("looking to stop\r\n");
+      //printf("looking to stop\r\n");
       if (ranger > 20)
         DRIVE_PW = PW_MAX ;
       else {
@@ -326,12 +349,13 @@ void steering_servo()
     PW = (heading_k * (heading_error) + PW_CENTER);
 
     //PRINT STATEMENTS FOR DEBUGGING PURPOSES - print every few ms to prevent delay
+    /*
     if (count % 40 == 0) {
       printf("Heading target: %u\r\n", heading_target);
       printf("heading: %u\r\n", heading);
       printf("Heading error: %d\r\n================\r\n", heading_error);
     }
-
+*/
     //MAKE SURE THAT THE PW ARE WITHIN BOUNDS
     if (PW > PW_MAX) {
       PW = PW_MAX;
@@ -356,7 +380,7 @@ void steering_servo()
 void read_keypad_values(void) {
   while(readGains == 2){
     while (compFlag < 20) {
-      printf("wait");
+      //printf("wait");
     }
     lcd_clear();
     lcd_print("Enter heading for compass and press #\n");
@@ -373,7 +397,7 @@ void read_keypad_values(void) {
       }
       if (key != 0x23) {
         tempForGainRead += (key - 0x30);
-        printf("val %u\r\n", tempForGainRead);
+        //printf("val %u\r\n", tempForGainRead);
       }
       while (read_keypad() != 0xFF) {
 
@@ -404,7 +428,7 @@ void read_keypad_values(void) {
         }
         if (key != 0x23) {
           tempForGainRead += (key - 0x30);
-          printf("val %u\r\n", tempForGainRead);
+          //printf("val %u\r\n", tempForGainRead);
         }
         while (read_keypad() != 0xFF) {
 
