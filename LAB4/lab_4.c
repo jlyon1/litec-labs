@@ -49,8 +49,6 @@ unsigned int DRIVE_PW = 0;
 int count;
 char key;
 
-float b_voltage;
-
 // ranger and compass value inits
 int heading = 0;
 unsigned int flag = 0;
@@ -118,7 +116,7 @@ void main(void)
   while (1) {
     if (read_keypad() != 0xFF) {
       key = read_keypad();
-      printf("%u\r\n", key);
+      
       if (key == 35) { // Start reading gains
         readGains = 1;
         compFlag = 0;
@@ -134,7 +132,7 @@ void main(void)
     read_keypad_values();
 
     // wait so that ranger is not read to often
-    if (flag >= 5) {
+    if (flag >= 4) {
       unsigned char data[2]; // array to store the ranger data
       flag = 0; // reset the flag variable
       data[0] = 0x51; // write 0x51 to reg 0 of the ranger:
@@ -143,15 +141,15 @@ void main(void)
     }
 
     // wait so compass isn't read too often
-    if (compFlag >= 2) {
+    if (flag >= 2) {
       heading = ReadCompass(); // read compass values
       compFlag = 0; // reset the compass flag
-      b_voltage = (float)read_AD_input(1) * (15.0/255.0);
+
     }
 
     // print every few ms to prevent slowing down i2c communications
     if (count % 40 == 0) {
-      printf("%u;%u;%u;%f\r\n", count,ranger,heading,b_voltage);
+      printf("%u;%u;%u;%u\r\n", count,ranger,heading,  (int)(read_AD_input(1) * (15.0/255.0)));
 
       lcd_clear();
       if (motorControlState == 3)
@@ -369,7 +367,7 @@ void steering_servo()
 
   }
   else {//if not slideswitch center steering
-    printf("Switch is off and stopping motors\r\n");
+    //printf("Switch is off and stopping motors\r\n");
     PCA0CP0 = 0xFFFF - PW_CENTER;
   }
 }
