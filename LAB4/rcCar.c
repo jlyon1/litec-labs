@@ -114,57 +114,21 @@ void main(void)
   lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
 
   while (1) {
-    if (read_keypad() != 0xFF) {
-      key = read_keypad();
-      
-      if (key == 35) { // Start reading gains
-        readGains = 1;
-        compFlag = 0;
-        flag = 0;
-      }
-      if (key == 42){
-        readGains = 2;
-      }
-    }
-    key = 0;
-
-    //read new gain values if and only if the pound key has already been pressed
-    read_keypad_values();
-
-    // wait so that ranger is not read to often
-    if (flag >= 4) {
-      unsigned char data[2]; // array to store the ranger data
-      flag = 0; // reset the flag variable
-      data[0] = 0x51; // write 0x51 to reg 0 of the ranger:
-      ranger = ReadRanger(); // read the value of the ranger
-      i2c_write_data(0xE0, 0, data, 1); // finally ping to the ranger
-    }
-
-    // wait so compass isn't read too often
-    if (flag >= 2) {
-      heading = ReadCompass(); // read compass values
-      compFlag = 0; // reset the compass flag
+    key = getchar();
+    if(key == 'w'){
+      DRIVE_PW = PW_MAX;
 
     }
-
-    // print every few ms to prevent slowing down i2c communications
-    if (count % 40 == 0) {
-      printf("%u;%u;%u;%u\r\n", count,ranger,heading,  (int)(read_AD_input(1) * (15.0/255.0)));
-
-      lcd_clear();
-      if (motorControlState == 3)
-        lcd_print("Heading: %u,\n Range: %u \n Done!", heading, ranger);
-      else
-      {
-        lcd_clear();
-        if (!ss) lcd_print("Heading: %u,\n Range: %u \n Slide switch off", heading, ranger);
-        else {
-          if (motorControlState == 0)      lcd_print("Heading: %u,\n Range: %u \n Looking for target", heading, ranger);
-          if (motorControlState == 1)      lcd_print("Heading: %u,\n Range: %u \n Following Target", heading, ranger);
-          if (motorControlState == 2)      lcd_print("Heading: %u,\n Range: %u \n Looking to stop", heading, ranger);
-        }
-
-      }
+    else if(key == 's'){
+      DRIVE_PW = PW_MIN;
+    }
+    else if(key == 'a'){
+      PW = PW_MIN;
+    }else if(key == 'd'){
+          PW = PW_MAX;
+    }else{
+      PW = PW_CENTER;
+      DRIVE_PW = PW_CENTER;
     }
 
 
@@ -272,47 +236,7 @@ unsigned int ReadRanger()
 //-----------------------------------------------------------------------------
 void drive_motor_control() {
   if (ss) {
-    if (motorControlState == 0) { // drive until object is found
-      if (ranger <= 30) // if object is within 30 cm do next task
-        motorControlState++;
-      else { // if object no found drive forward at 75% power
-        DRIVE_PW = PW_MAX ;
-        //printf("looking for something to follow\r\n");
-        // PCA0CP2 = 0xFFFF - DRIVE_PW;
-      }
-    }
-    else if (motorControlState == 1) {
-      DRIVE_PW = drive_k * (ranger - 30) + PW_CENTER;
-      if (ranger < 30) // ranger is < 30 use equation
-        DRIVE_PW = (-(drive_k * 8) * (20 - (ranger - 10)) + PW_CENTER);
-      //printf("currently following an object\r\n");
-      if (ranger > 100) // anything further than 100 cm is considered losing the object
-        motorControlState++;
-    }
-    else if (motorControlState == 2 ) {
-      //printf("looking to stop\r\n");
-      if (ranger > 20)
-        DRIVE_PW = PW_MAX ;
-      else {
-        DRIVE_PW = PW_CENTER;
-        motorControlState = 3;
-      }
-    }
 
-    // if (ss) { // if slide switch modify drive value
-    //   // check the value of the ranger and set drive motor accordingly
-    //   if (ranger < 10) // ranger is < 10 cm then set max reverse
-    //     DRIVE_PW = PW_MIN;
-    //   else if (ranger > 90) // ranger is > 90 cm then set max forward
-    //     DRIVE_PW = PW_MAX;
-    //   else if (ranger > 30 && ranger < 40) // ranger is between 30 cm and 40 cm stop motor
-    //     DRIVE_PW = PW_CENTER;
-    //   else if (ranger < 30) // ranger is < 30 use equation
-    //     DRIVE_PW = (-31.6 * (20 - (ranger - 10)) + PW_CENTER);
-    //   else //all other cases (should only be when ranger is between 40 cm and 90 cm) use this eqn
-    //     DRIVE_PW = (13.8 * (ranger - 40) + PW_CENTER);
-
-    //   // check to make sure that the Pulse width is within bounds
     if (DRIVE_PW > PW_MAX)
       DRIVE_PW = PW_MAX;
     if (DRIVE_PW < PW_MIN)
@@ -333,27 +257,7 @@ void drive_motor_control() {
 void steering_servo()
 {
   if (ss) {//if slideswitch modify steering value
-    heading_error = heading_target - heading;
-    // if the error is greater than +/- 180 deg then turn the other way
-    if (heading_error > 1800 ) {
-      heading_error -= 1800;
-      heading_error *= -1;
-    }
-    else if (heading_error < -1800) {
-      heading_error += 1800;
-      heading_error *= -1;
-    }
-    // porportionally change the steering to reach target
-    PW = (heading_k * (heading_error) + PW_CENTER);
 
-    //PRINT STATEMENTS FOR DEBUGGING PURPOSES - print every few ms to prevent delay
-    /*
-    if (count % 40 == 0) {
-      printf("Heading target: %u\r\n", heading_target);
-      printf("heading: %u\r\n", heading);
-      printf("Heading error: %d\r\n================\r\n", heading_error);
-    }
-*/
     //MAKE SURE THAT THE PW ARE WITHIN BOUNDS
     if (PW > PW_MAX) {
       PW = PW_MAX;
@@ -361,7 +265,7 @@ void steering_servo()
     if (PW < PW_MIN) {
       PW = PW_MIN;
     }
-	
+
     // set the steering
     PCA0CP0 = 0xFFFF - PW;
 
