@@ -126,8 +126,8 @@ void main(void)
 		avg_gy = 0;
 
 		i2c_read_data(0x3A, 0x28|0x80,Data, 4);
-		avg_gx += ((Data[1]) << 8) >> 4;
-		avg_gy += ((Data[3]) << 8) >> 4;
+		avg_gx = ((Data[1]) << 8) >> 4;
+		avg_gy = ((Data[3]) << 8) >> 4;
 
 	printf("%d\r\n",avg_gx/10);
     if (read_keypad() != 0xFF) {
@@ -155,7 +155,7 @@ void main(void)
       lcd_clear();
 
     }
-	if(avg_gx < 100 && avg_gx > -100){
+	if(avg_gx < 50 && avg_gx > -50){
 		avg_gx = 0;
 	}
 	heading = avg_gx/10;
