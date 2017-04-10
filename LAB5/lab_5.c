@@ -159,7 +159,7 @@ void main(void)
 		avg_gx = 0;
 	}
 	heading = avg_gx/10;
-	heading *= -500;
+	heading *= -200;
     steering_servo();
     drive_motor_control();
   }
