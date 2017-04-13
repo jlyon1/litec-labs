@@ -1,11 +1,11 @@
 /*
-    Section:
-    Date:
-    File name:
-    Program description:
+    Section: 2B
+    Date: 4/13/17
+    File name: Worksheet 11
+    Program description: 
 */
 
-#include <c8051_SDCC.h>
+// #include <c8051_SDCC.h>
 #include <stdio.h>
 
 /* Global Variables */
@@ -17,13 +17,13 @@
  */
 /////////////////////////
 
-unsigned int desired = 0;           // set this value
-unsigned int actual = 0;            // set this value
-unsigned int kp = 0;                // set this value
-unsigned int kd = 0;                // set this value
-signed int pw_neut = 0;             // set this value
-signed int previous_error = 0;      // set this value
-signed int error = 0;               // set this value
+unsigned int desired = 1800;           // set this value
+unsigned int actual = 3500;            // set this value
+unsigned int kp = 30;                // set this value
+unsigned int kd = 30;                // set this value
+signed int pw_neut = 2765;             // set this value
+signed int previous_error = 1760;      // set this value
+signed int error = 1700;               // set this value
 signed int temp_motorpw_2byte = 0;
 signed long temp_motorpw_alg1 = 0;
 signed long temp_motorpw_alg2 = 0;
@@ -33,8 +33,8 @@ signed long temp_motorpw_alg5 = 0;
 signed long temp_motorpw_alg6 = 0;
 
 void main()
-{
-    Sys_Init();
+{  
+    // Sys_Init();
     putchar(' ');
     error = desired-actual;
 //  two byte calculation
