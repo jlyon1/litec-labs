@@ -54,7 +54,6 @@ int heading = 0;
 unsigned int flag = 0;
 unsigned int ranger = 0;
 
-
 // porportion control values
 int heading_error = 0;
 int heading_target = 0;
@@ -62,18 +61,18 @@ int drive_error = 0;
 int drive_target = 2760;
 float kdx = 130;
 int kdy = 0;
-float heading_k = 5;
-int tempForGainRead = 0;
-
-int readGains = 0;
-int gainReadState = COMPASS_GAIN;
-
+float ks = 5;
+__xdata int tempForGainRead = 0;
+__xdata int readGains = 0;
+__xdata int gainReadState = COMPASS_GAIN;
+int correctionY = 0;
+int correctionX = 0;
 
 
 //sbit inits
 __sbit __at 0xB7 ss;
 
-unsigned char read_AD_input(unsigned char n)
+unsigned char read_AD_input(unsigned char n)//9
 {
 	AMX1SL = n; /* Set P1.n as the analog input for ADC1 */
 	ADC1CN = ADC1CN & ~0x20; /* Clear the “Conversion Completed” flag */
@@ -95,7 +94,7 @@ void ADC_Init(void)
 //-----------------------------------------------------------------------------
 int avg_gx = 0;
 int avg_gy = 0;
-int value = 0;
+
 
 void main(void)
 {
@@ -111,14 +110,12 @@ void main(void)
 	Accel_Init_C();
   // calibrate the drive motor
   PCA0CP2 = PW_CENTER;
-  while (count < 60);
-
   // reset timer variable
-  count = 0;
 
   //infinite while loop
   lcd_clear();
   lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
+	count = 0;
 
   while (1) {
 		int i;
@@ -126,6 +123,19 @@ void main(void)
 		avg_gx = 0;
 		avg_gy = 0;
 		//read new gain values if and only if the pound key has already been pressed
+		if(correctionY == 0){
+			for(i = 0; i < 64; i ++){
+				delay_time(50000);
+				i2c_read_data(0x3A, 0x28|0x80,Data, 4);
+				avg_gx += ((Data[1]) << 8) >> 4;
+				avg_gy += ((Data[3]) << 8) >> 4;
+
+			}
+			correctionY = avg_gy / 63;
+			correctionX = avg_gx / 63;
+		}
+
+
 		read_keypad_values();
 		if (read_keypad() != 0xFF) {
 			key = read_keypad();
@@ -140,33 +150,37 @@ void main(void)
 			}
 		}
 		key = 0;
-		// print every few ms to prevent slowing down i2c communications
-		if (count % 40 == 0) {
-			lcd_clear();
-		}
 		//Control the steering and drive based on accel data
 		// Make sure we have new data
-		if(count % 2 == 0){
-			for(int i = 0; i < 4){
-				while(value < 1);
-				i2c_read_data(0x3A, 0x28|0x80,Data, 4);
-				avg_gx += ((Data[1]) << 8) >> 4;
-				avg_gy += ((Data[3]) << 8) >> 4;
-				value = 0;
-			}
-			avg_gx /= 4;
-			avg_gy /= 4;
-			kdy = 1 + ((50 * read_AD_input(2))/255); // Read the analog input and scale it to be between 1 and 50
-			printf("%d\r\n",avg_gx/10);
+		for(i = 0; i < 4;i++){
+			delay_time(50000);
+			i2c_read_data(0x3A, 0x28|0x80,Data, 4);
+			avg_gx += ((Data[1]) << 8) >> 4;
+			avg_gy += ((Data[3]) << 8) >> 4;
 
-		if(avg_gx < 50 && avg_gx > -50){
+		}
+
+		avg_gx /= 4;
+		avg_gx -= correctionX;
+		avg_gy /= 4;
+		avg_gy -= correctionY;		
+		lcd_clear();
+		lcd_print("accel X,Y %d,%d\nGains kdx,kdy,ks \n%f,%d,%d",avg_gx,avg_gy,kdx,kdy,ks);
+		
+
+		kdy =((50 * read_AD_input(5))/255); // Read the analog input and scale it to be between 1 and 50
+		printf("kdy %u\r\n",kdy);
+		if(avg_gx < 20 && avg_gx > -20){
 			avg_gx = 0;
 		}
-		heading = avg_gx/10;
-		heading *= -200;
-	    steering_servo();
-	    drive_motor_control();
-	  }
+
+
+		heading = avg_gx;
+		heading *= 2;
+		printf("heading %d\r\n",heading);
+    	steering_servo();
+    	drive_motor_control();
+
 	}
 }
 //-----------------------------------------------------------------------------
@@ -225,7 +239,7 @@ void PCA_ISR ( void ) __interrupt 9 {
     PCA0 = 28670;
     flag += 1;
     count += 1;
-		value += 1;
+
   }
 }
 
@@ -246,7 +260,7 @@ void drive_motor_control() {
   }
   else // if not slideswitch stop drive motors
     PCA0CP2 = 0xFFFF - PW_CENTER;
-	printf("ss");
+
 
 }
 
@@ -267,7 +281,7 @@ void steering_servo()
       heading_error *= -1;
     }
     // porportionally change the steering to reach target
-    PW = (heading_k * (heading_error) + PW_CENTER);
+    PW = (ks * (heading_error) + PW_CENTER);
     if (PW > PW_MAX) {
       PW = PW_MAX;
     }
@@ -292,7 +306,7 @@ void read_keypad_values(void) {
   while(readGains == 2){
 
     lcd_clear();
-    lcd_print("Enter heading for compass and press #\n");
+    lcd_print("Enter heading for drive and press #\n");
     tempForGainRead = 0;
     while (key != 0x23) {
       while (read_keypad() == 0xFF) {
@@ -324,7 +338,7 @@ void read_keypad_values(void) {
 
     if (gainReadState == COMPASS_GAIN) {
       lcd_clear();
-      lcd_print("Enter gain for compass and press #\n Note, this is multiplied by 10^-2\n");
+      lcd_print("Enter gain for steering and press #\n Note, this is multiplied by 10^-2\n");
       while (key != 0x23) {
         while (read_keypad() == 0xFF) {
 
@@ -343,7 +357,7 @@ void read_keypad_values(void) {
 
         }
       }
-      heading_k = (float)((float)tempForGainRead * .01f);
+      ks = (float)((float)tempForGainRead * .01f);
       gainReadState = RANGER_GAIN;
       key = 0;
       tempForGainRead = 0;
@@ -355,7 +369,7 @@ void read_keypad_values(void) {
       }
 
       lcd_clear();
-      lcd_print("Enter gain for ranger and press #\n Note, this is multiplied by 10^-2\n");
+      lcd_print("Enter gain for kdx and press #\n Note, this is multiplied by 10^-2\n");
       while (key != 0x23) {
         while (read_keypad() == 0xFF) {
 
@@ -376,7 +390,7 @@ void read_keypad_values(void) {
       key = 0;
       kdx = (float)tempForGainRead * .01;
       gainReadState = COMPASS_GAIN;
-      printf("heading_k %u, ranger_k %u\r\n", heading_k, kdx);
+      printf("ks %u, ranger_k %u\r\n", ks, kdx);
       tempForGainRead = 0;
       readGains = 0;
     }
