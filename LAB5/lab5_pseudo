@@ -1,0 +1,25 @@
+compiler directives
+declare global variables
+function prototypes
+main function
+	declare local variables
+  	configure IO Ports
+  	Configure crossbar
+ 	initialize timer
+ 	begin infinite while loop
+ 		Calibrate accelrometer
+ 		if pound key has been pressed
+ 			read keypad values and update gains
+ 		average gx = stores average value of accel in x
+ 		average in new value for x
+ 		average gy = stores average value of accel in x
+ 		average in new value for y
+ 		display new values to the lcd
+
+ 		convert accelerometer in x to rough angular movements
+ 		use Porportional control to turn accordingly
+
+ 		if accelerometer in y is roughly constant to measured value of gravity
+ 			stop drive motors
+ 		else run full power
+ 	end infinite while loop
