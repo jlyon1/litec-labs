@@ -60,7 +60,8 @@ int heading_error = 0;
 int heading_target = 0;
 int drive_error = 0;
 int drive_target = 2760;
-float drive_k = 130;
+float kdx = 130;
+int kdy = 0;
 float heading_k = 5;
 int tempForGainRead = 0;
 
@@ -94,7 +95,7 @@ void ADC_Init(void)
 //-----------------------------------------------------------------------------
 int avg_gx = 0;
 int avg_gy = 0;
-
+int value = 0;
 
 void main(void)
 {
@@ -124,45 +125,49 @@ void main(void)
 		unsigned char Data[4];
 		avg_gx = 0;
 		avg_gy = 0;
+		//read new gain values if and only if the pound key has already been pressed
+		read_keypad_values();
+		if (read_keypad() != 0xFF) {
+			key = read_keypad();
 
-		i2c_read_data(0x3A, 0x28|0x80,Data, 4);
-		avg_gx = ((Data[1]) << 8) >> 4;
-		avg_gy = ((Data[3]) << 8) >> 4;
+			if (key == 35) { // Start reading gains
+				readGains = 1;
 
-	printf("%d\r\n",avg_gx/10);
-    if (read_keypad() != 0xFF) {
-      key = read_keypad();
-
-      if (key == 35) { // Start reading gains
-        readGains = 1;
-
-        flag = 0;
-      }
-      if (key == 42){
-        readGains = 2;
-      }
-    }
-    key = 0;
-		if(flag % 5){
-
+				flag = 0;
+			}
+			if (key == 42){
+				readGains = 2;
+			}
 		}
+		key = 0;
+		// print every few ms to prevent slowing down i2c communications
+		if (count % 40 == 0) {
+			lcd_clear();
+		}
+		//Control the steering and drive based on accel data
+		// Make sure we have new data
+		if(count % 2 == 0){
+			for(int i = 0; i < 4){
+				while(value < 1);
+				i2c_read_data(0x3A, 0x28|0x80,Data, 4);
+				avg_gx += ((Data[1]) << 8) >> 4;
+				avg_gy += ((Data[3]) << 8) >> 4;
+				value = 0;
+			}
+			avg_gx /= 4;
+			avg_gy /= 4;
+			kdy = 1 + ((50 * read_AD_input(2))/255); // Read the analog input and scale it to be between 1 and 50
+			printf("%d\r\n",avg_gx/10);
 
-    //read new gain values if and only if the pound key has already been pressed
-    read_keypad_values();
-
-    // print every few ms to prevent slowing down i2c communications
-    if (count % 40 == 0) {
-      lcd_clear();
-
-    }
-	if(avg_gx < 50 && avg_gx > -50){
-		avg_gx = 0;
+		if(avg_gx < 50 && avg_gx > -50){
+			avg_gx = 0;
+		}
+		heading = avg_gx/10;
+		heading *= -200;
+	    steering_servo();
+	    drive_motor_control();
+	  }
 	}
-	heading = avg_gx/10;
-	heading *= -200;
-    steering_servo();
-    drive_motor_control();
-  }
 }
 //-----------------------------------------------------------------------------
 // Port_Init
@@ -220,6 +225,7 @@ void PCA_ISR ( void ) __interrupt 9 {
     PCA0 = 28670;
     flag += 1;
     count += 1;
+		value += 1;
   }
 }
 
@@ -368,9 +374,9 @@ void read_keypad_values(void) {
         }
       }
       key = 0;
-      drive_k = (float)tempForGainRead * .01;
+      kdx = (float)tempForGainRead * .01;
       gainReadState = COMPASS_GAIN;
-      printf("heading_k %u, ranger_k %u\r\n", heading_k, drive_k);
+      printf("heading_k %u, ranger_k %u\r\n", heading_k, kdx);
       tempForGainRead = 0;
       readGains = 0;
     }
