@@ -31,7 +31,7 @@ void read_keypad_values();
 //-----------------------------------------------------------------------------
 // DEFINITIONS -  these are constant values
 //-----------------------------------------------------------------------------
-#define PW_MIN 2130
+#define PW_MIN 1500
 #define PW_MAX 3450
 #define PW_CENTER 2760
 
@@ -59,8 +59,8 @@ int heading_error = 0;
 int heading_target = 0;
 int drive_error = 0;
 int drive_target = 2760;
-float kdx = 130;
-int kdy = 0;
+float kdx = -5;
+int kdy = 4;
 float ks = 5;
 __xdata int tempForGainRead = 0;
 __xdata int readGains = 0;
@@ -99,6 +99,7 @@ int avg_gy = 0;
 void main(void)
 {
 
+
   // initialize EVB
   Sys_Init();
   putchar(' ');
@@ -111,7 +112,7 @@ void main(void)
   // calibrate the drive motor
   PCA0CP2 = PW_CENTER;
   // reset timer variable
-
+  printf("time;x_accel;y_accel;drivepw;str_pw\r\n");
   //infinite while loop
   lcd_clear();
   lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
@@ -166,10 +167,10 @@ void main(void)
 		avg_gy -= correctionY;		
 		lcd_clear();
 		lcd_print("accel X,Y %d,%d\nGains kdx,kdy,ks \n%f,%d,%d",avg_gx,avg_gy,kdx,kdy,ks);
-		
-
+		printf("%d;%d;%d;%d;%d\r\n",count,avg_gx,avg_gy,DRIVE_PW,PW);
+	
 		kdy =((50 * read_AD_input(5))/255); // Read the analog input and scale it to be between 1 and 50
-		printf("kdy %u\r\n",kdy);
+		
 		if(avg_gx < 20 && avg_gx > -20){
 			avg_gx = 0;
 		}
@@ -177,7 +178,7 @@ void main(void)
 
 		heading = avg_gx;
 		heading *= 2;
-		printf("heading %d\r\n",heading);
+		
     	steering_servo();
     	drive_motor_control();
 
@@ -256,7 +257,24 @@ void SMB_init(void) {
 //-----------------------------------------------------------------------------
 void drive_motor_control() {
   if (ss) {
-    PCA0CP2 = 0xFFFF - PW_MAX;//DRIVE_PW;
+  	DRIVE_PW = PW_CENTER + kdy * avg_gy;
+	if(avg_gx < 0){
+		DRIVE_PW += kdx * avg_gx * -1;
+	}
+	if(avg_gx > 0){
+		DRIVE_PW += kdx * avg_gx;
+	}
+
+	if(DRIVE_PW < PW_MIN || DRIVE_PW > 6000){
+		DRIVE_PW = PW_MIN;
+		
+	}
+	else if(DRIVE_PW > PW_MAX){
+		DRIVE_PW = PW_MAX;
+		
+	}
+
+    PCA0CP2 = 0xFFFF - DRIVE_PW;//DRIVE_PW;
   }
   else // if not slideswitch stop drive motors
     PCA0CP2 = 0xFFFF - PW_CENTER;
