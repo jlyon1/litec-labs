@@ -21,19 +21,22 @@ void XBR0_Init();
 void Port_Init(void);
 void PCA_Init (void);
 void SMB_init(void);
-void steer_control(void);
+void steering_control(void);
+void lab6_control(void);
 unsigned int ReadCompass(void);
 unsigned int ReadRanger(void);
 void PCA_ISR ( void ) __interrupt 9;
 void read_keypad_values();
-
+unsigned char read_AD_input(unsigned char n);
+void ADC_Init(void);
+void update_target(void);
 
 //-----------------------------------------------------------------------------
-// DEFINITIONS -  these are constant values
+// DEFINITIONS -  these are kp values
 //-----------------------------------------------------------------------------
-#define PW_MIN 2130
+#define PW_MIN 2028
 #define PW_MAX 3450
-#define PW_CENTER 2760
+#define PW_CENTER 3502
 
 #define COMPASS_GAIN 0
 #define RANGER_GAIN 1
@@ -43,7 +46,6 @@ void read_keypad_values();
 //-----------------------------------------------------------------------------
 // pulse width inits
 unsigned int PW = 0;
-unsigned int DRIVE_PW = 0;
 
 // input and timer init
 int count;
@@ -59,35 +61,17 @@ unsigned int compFlag = 0;
 int heading_error = 0;
 int heading_target = 135;
 int prev_error = 0;
-int drive_error = 0;
-int drive_target = 2760;
-__xdata float drive_k = 130;
-__xdata float kp = 0.99;
-__xdata float kd = 0.99;
-float error =0;
 int tempForGainRead = 0;
+int motorControlState = 0 ;
+
+int hold_heading =135;
+int change = 1;
+
 
 __xdata int readGains = 0;
 __xdata int gainReadState = COMPASS_GAIN;
-
-int motorControlState = 0 ;
-
-
-unsigned char read_AD_input(unsigned char n)
-{
-  AMX1SL = n; /* Set P1.n as the analog input for ADC1 */
-  ADC1CN = ADC1CN & ~0x20; /* Clear the “Conversion Completed” flag */
-  ADC1CN = ADC1CN | 0x10; /* Initiate A/D conversion */
-  while ((ADC1CN & 0x20) == 0x00); /* Wait for conversion to complete */
-  return ADC1; /* Return digital value in ADC1 register */
-}
-
-void ADC_Init(void)
-{
-  REF0CN = 0x03; /* Set Vref to use internal reference voltage (2.4V) */
-  ADC1CN = 0x80; /* Enable A/D converter (ADC1) */
-  ADC1CF |= 0x01; /* Set A/D converter gain to 1 */
-}
+__xdata float kp = 17;
+__xdata float kd = 10;
 
 
 //-----------------------------------------------------------------------------
@@ -104,8 +88,13 @@ void main(void)
   SMB_init();
   ADC_Init();
   // calibrate the drive motor
-  PCA0CP0 = PW_CENTER;
-  while (count < 60);
+
+  while (count < 60) {
+    PCA0CP0 = 0xFFFF -PW_CENTER;
+    PCA0CP1 = 0xFFFF -PW_CENTER;
+    PCA0CP2 = 0xFFFF -PW_CENTER;
+    PCA0CP3 = 0xFFFF - PW_CENTER;
+  }
 
   // reset timer variable
   count = 0;
@@ -115,7 +104,7 @@ void main(void)
   lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
 
   while (1) {
-  	
+
     if (read_keypad() != 0xFF) {
       key = read_keypad();
 
@@ -141,7 +130,6 @@ void main(void)
       ranger = ReadRanger(); // read the value of the ranger
       i2c_write_data(0xE0, 0, data, 1); // finally ping to the ranger
     }
-
     // wait so compass isn't read too often
     if (flag >= 2) {
       heading = ReadCompass(); // read compass value
@@ -149,13 +137,13 @@ void main(void)
 
     }
     //printf("%d  %d  %d  %d\r\n", error, heading, 0,  (int)(read_AD_input(1) * (15.0 / 255.0)));
-	// print every few ms to prevent slowing down i2c communications
+    // print every few ms to prevent slowing down i2c communications
     if (count % 40 == 0) {
-      printf("%d  %d\r\n", error, heading);
       lcd_clear();
       lcd_clear();
-      lcd_print("Heading: %u,\n Range: %u", heading, heading_error, ranger);
+      lcd_print("Heading: %u,\n Heading error: %d\n PW:%d \n Heading Target: %d", heading, heading_error, PW,heading_target);
     }
+    steering_control();
   }
 
 
@@ -168,11 +156,9 @@ void main(void)
 //
 void Port_Init()
 {
-  //P1MDIN &= ~0x02; //set pin 1 for analog input
-  //P1MDOUT &= ~0x02; // Set to open drain
   P1MDOUT |= 0x04;  //set output pin for CEX2 in push-pull mode
-  P0MDOUT &= 0b11110011;
-  P0 |= ~0b11110011;
+  P0MDOUT &= 0b11111111;
+  P0 |= ~0b11111111;
   P3MDOUT &= 0x00;
   P3 |= 0xFF;
 }
@@ -185,7 +171,7 @@ void Port_Init()
 //
 void XBR0_Init()
 {
-  XBR0 = 0x27;  //configure crossbar as directed in the laboratory
+  XBR0 = 0x25;  //configure crossbar as directed in the laboratory
 
 }
 
@@ -198,9 +184,10 @@ void XBR0_Init()
 void PCA_Init(void)
 {
   PCA0MD = 0b01110001;//Set to sysclock/12
-  //PCA0MD = 0x
   PCA0CPM0 = 0xC2;
+  PCA0CPM1 = 0xC2;
   PCA0CPM2 = 0xC2;
+  PCA0CPM3 = 0xC2;
   PCA0CN = 0x40;
   EIE1 |= 0b00001000;
   EA = 1;
@@ -239,8 +226,8 @@ unsigned int ReadCompass(void) {
   heading = (((unsigned int)Data[0] << 8) | Data[1]); //combine the two values
   //heading has units of 1/10 of a degree
   // return heading; // the heading returned in degrees between 0 and 3599
-  printf("Reading: %u;%u",heading, heading/10);
-  return (heading /10); //returns a value between 0 and 360
+  //printf("Reading: %u;%u",heading, heading/10);
+  return (heading / 10); //returns a value between 0 and 360
 }
 
 
@@ -262,12 +249,80 @@ unsigned int ReadRanger()
 // Steering control - This controls the steering by using the steering fan
 //-----------------------------------------------------------------------------
 void steering_control(void) {
-  heading_error = heading_target - heading;
-  PW = PW_CENTER + kp * heading_error + kd * (heading_error - prev_error);
+update_target();
+  heading_error  = heading - heading_target;  // if the error is greater than +/- 180 deg then turn the other way
+  if (heading_error > 180 ) {
+    heading_error -= 180;
+    heading_error *= -1;
+  }
+  else if (heading_error < -180) {
+    heading_error += 180;
+    heading_error *= -1;
+  }
+  PW = (long)kp * heading_error + (long)kd * (prev_error - heading_error ) + PW_CENTER;
+  if (PW < PW_MIN)PW = PW_MIN;
+  if (PW > PW_MAX)PW = PW_MAX;
   prev_error = heading_error;
-  PCA0CP0 = 0xFF - PW;
+  PCA0CP0 = 0xFFFF - PW;
+  PCA0CP2 = 0xFFFF - PW;
+  PCA0CP1 =  0xFFFF - PW_MIN;
 }
 
+unsigned char read_AD_input(unsigned char n)
+{
+  AMX1SL = n; /* Set P1.n as the analog input for ADC1 */
+  ADC1CN = ADC1CN & ~0x20; /* Clear the “Conversion Completed” flag */
+  ADC1CN = ADC1CN | 0x10; /* Initiate A/D conversion */
+  while ((ADC1CN & 0x20) == 0x00); /* Wait for conversion to complete */
+  return ADC1; /* Return digital value in ADC1 register */
+}
+
+void ADC_Init(void)
+{
+  REF0CN = 0x03; /* Set Vref to use internal reference voltage (2.4V) */
+  ADC1CN = 0x80; /* Enable A/D converter (ADC1) */
+  ADC1CF |= 0x01; /* Set A/D converter gain to 1 */
+}
+
+
+void update_target(void) {
+  if (ranger<55 & ranger>45) { //+/-5 away from 50 cm will hold the current heading
+	if(change){
+	hold_heading = heading;
+	change =0;
+	}
+	heading_target = hold_heading;
+
+  }
+  else if (ranger > 55) {
+	heading_target += 0.5*(ranger-55);
+	change =1;
+  }
+  else if (ranger < 45) {
+ 	heading_target += -4*(ranger-45);
+	change=1;
+ }
+ if(heading_target>360)heading_target=360;
+ if(heading_target<0)heading_target=0;
+}
+
+void lab6_control(void) {
+
+  // angularVelocity = prevHeading - heading;
+  // angularVelocityError = angularVelocity - angularVelocityTarget;
+  // prevAngularVelocity = angularVelocity;
+
+  // PW = (long)kp * angularVelocityError + (long)kd * (angularVelocityError - prev_error) + PW_CENTER;
+
+  // if (PW < PW_MIN)PW = PW_MIN;
+  // if (PW > PW_MAX)PW = PW_MAX;
+
+  // prev_error = angularVelocityError;
+
+  // PCA0CP0 = 0xFF - PW;
+  // PCA0CP3 = 0xFF + PW;
+  // PCA0CP1 =  PW_CENTER;
+}
 
 //-----------------------------------------------------------------------------
 // READ KEYPAD VALUES - this reads new gains from the keypad and displays some messages when pound
@@ -311,7 +366,7 @@ void read_keypad_values(void) {
 
     if (gainReadState == COMPASS_GAIN) {
       lcd_clear();
-      lcd_print("Enter gain for compass and press #\n Note, this is multiplied by 10^-2\n");
+      lcd_print("Enter kp #\n Note, this is multiplied by 10^-2\n");
       while (key != 0x23) {
         while (read_keypad() == 0xFF) {
 
@@ -342,7 +397,7 @@ void read_keypad_values(void) {
       }
 
       lcd_clear();
-      lcd_print("Enter gain for ranger and press #\n Note, this is multiplied by 10^-2\n");
+      lcd_print("Enter kd #\n Note, this is multiplied by 10^-2\n");
       while (key != 0x23) {
         while (read_keypad() == 0xFF) {
 
@@ -361,9 +416,9 @@ void read_keypad_values(void) {
         }
       }
       key = 0;
-      drive_k = (float)tempForGainRead * .01;
+      kd = (float)tempForGainRead * .01;
       gainReadState = COMPASS_GAIN;
-      printf("kp %u, ranger_k %u\r\n", kp, drive_k);
+      //printf("kp %u, ranger_k %u\r\n", kp, drive_k);
       tempForGainRead = 0;
       readGains = 0;
     }
