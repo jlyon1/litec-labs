@@ -35,8 +35,8 @@ void update_target(void);
 // DEFINITIONS -  these are kp values
 //-----------------------------------------------------------------------------
 #define PW_MIN 2028
-#define PW_MAX 3450
-#define PW_CENTER 3502
+#define PW_MAX 3400//actually 3502
+#define PW_CENTER 2765
 
 #define COMPASS_GAIN 0
 #define RANGER_GAIN 1
@@ -50,7 +50,7 @@ unsigned int PW = 0;
 // input and timer init
 int count;
 char key;
-
+int PW_CENTER_ANGLE= 3400;
 // ranger and compass value inits
 int heading = 0;
 unsigned int flag = 0;
@@ -64,14 +64,14 @@ int prev_error = 0;
 int tempForGainRead = 0;
 int motorControlState = 0 ;
 
-int hold_heading =135;
+int hold_heading = 135;
 int change = 1;
-
+int output =0;
 
 __xdata int readGains = 0;
 __xdata int gainReadState = COMPASS_GAIN;
-__xdata float kp = 17;
-__xdata float kd = 10;
+__xdata float kp = 12;
+__xdata float kd = 180;
 
 
 //-----------------------------------------------------------------------------
@@ -88,12 +88,12 @@ void main(void)
   SMB_init();
   ADC_Init();
   // calibrate the drive motor
-
+  PCA0CP1 = 0xFFFF - PW_CENTER;
   while (count < 60) {
-    PCA0CP0 = 0xFFFF -PW_CENTER;
-    PCA0CP1 = 0xFFFF -PW_CENTER;
-    PCA0CP2 = 0xFFFF -PW_CENTER;
+    PCA0CP0 = 0xFFFF - PW_CENTER;
+    PCA0CP2 = 0xFFFF - PW_CENTER;
     PCA0CP3 = 0xFFFF - PW_CENTER;
+    lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij%d" , count);
   }
 
   // reset timer variable
@@ -102,7 +102,7 @@ void main(void)
   //infinite while loop
   lcd_clear();
   lcd_print("Calibration:\nHello world!\n012_345_678:\nabc def ghij");
-
+  lab6_control();
   while (1) {
 
     if (read_keypad() != 0xFF) {
@@ -141,8 +141,9 @@ void main(void)
     if (count % 40 == 0) {
       lcd_clear();
       lcd_clear();
-      lcd_print("Heading: %u,\n Heading error: %d\n PW:%d \n Heading Target: %d", heading, heading_error, PW,heading_target);
-    }
+      lcd_print("Heading: %u,\n Heading error: %d\n PW:%d tar: %d\nRanger: %d", heading, heading_error, PW, heading_target, ranger);
+    printf("Heading: %u,\n Heading error: %d\n PW:%d tar: %d\nRanger: %d", heading, heading_error, PW, heading_target, ranger);
+	}
     steering_control();
   }
 
@@ -249,7 +250,9 @@ unsigned int ReadRanger()
 // Steering control - This controls the steering by using the steering fan
 //-----------------------------------------------------------------------------
 void steering_control(void) {
-update_target();
+	if(getchar_nw() == 's')output = 0;
+	if(getchar_nw() == 'g')output = 1;
+  update_target();
   heading_error  = heading - heading_target;  // if the error is greater than +/- 180 deg then turn the other way
   if (heading_error > 180 ) {
     heading_error -= 180;
@@ -262,10 +265,13 @@ update_target();
   PW = (long)kp * heading_error + (long)kd * (prev_error - heading_error ) + PW_CENTER;
   if (PW < PW_MIN)PW = PW_MIN;
   if (PW > PW_MAX)PW = PW_MAX;
+
   prev_error = heading_error;
+if(!output){
   PCA0CP0 = 0xFFFF - PW;
   PCA0CP2 = 0xFFFF - PW;
-  PCA0CP1 =  0xFFFF - PW_MIN;
+  }else printf("OUTPUT STOPPED\r\n");
+  PCA0CP1 =  0xFFFF - PW_CENTER_ANGLE;
 }
 
 unsigned char read_AD_input(unsigned char n)
@@ -286,42 +292,60 @@ void ADC_Init(void)
 
 
 void update_target(void) {
-  if (ranger<55 & ranger>45) { //+/-5 away from 50 cm will hold the current heading
-	if(change){
-	hold_heading = heading;
-	change =0;
-	}
-	heading_target = hold_heading;
+  if (ranger<65 & ranger>35) { //+/-5 away from 50 cm will hold the current heading
+    if (change) {
+      hold_heading = heading;
+      change = 0;
+    }
+    printf("Holding heading\r\n");
+    heading_target = hold_heading;
 
   }
   else if (ranger > 55) {
-	heading_target += 0.5*(ranger-55);
-	change =1;
+    heading_target = heading + 4 * (ranger - 55);
+    printf("Heading Target:%d\r\n", heading_target);
+    change = 1;
   }
   else if (ranger < 45) {
- 	heading_target += -4*(ranger-45);
-	change=1;
- }
- if(heading_target>360)heading_target=360;
- if(heading_target<0)heading_target=0;
+    heading_target = heading - 4 * (ranger);
+    printf("Heading Target less than:%d\r\n", heading_target);
+    change = 1;
+  }
+  if (heading_target > 360)heading_target = heading_target%360;
+  if (heading_target < 0)heading_target = 360+heading_target;
 }
 
 void lab6_control(void) {
+  char input = getchar();
+  int PW_MAX_TEMP = PW_MAX, PW_MIN_TEMP=PW_MIN;
+  while (input != 'c') {
 
-  // angularVelocity = prevHeading - heading;
-  // angularVelocityError = angularVelocity - angularVelocityTarget;
-  // prevAngularVelocity = angularVelocity;
+    input = getchar();
+    if (input == 'l') // single character input to decrease the pulsewidth
+    {
+      printf("\r\nturn left\r\n");
 
-  // PW = (long)kp * angularVelocityError + (long)kd * (angularVelocityError - prev_error) + PW_CENTER;
+      PW -= 10;
+      if (PW < PW_MIN_TEMP) { // check if less than pulsewidth minimum
+        PW = PW_MIN_TEMP;    // set SERVO_PW to a minimum value
+      }
+    }
+    else if (input == 'r') // single character input to increase the pulsewidth
+    {
+      printf("\r\nturn right\r\n");
 
-  // if (PW < PW_MIN)PW = PW_MIN;
-  // if (PW > PW_MAX)PW = PW_MAX;
+      PW += 10;
+      if (PW > PW_MAX_TEMP) // check if pulsewidth maximum exceeded
+        PW = PW_MAX_TEMP;     // set PW to a maximum value
+    }
+    PCA0CP1 = 0xFFFF - PW;
+  }
+  PW_CENTER_ANGLE = PW;
+  printf("\r\nCalibration press v when left");
 
-  // prev_error = angularVelocityError;
 
-  // PCA0CP0 = 0xFF - PW;
-  // PCA0CP3 = 0xFF + PW;
-  // PCA0CP1 =  PW_CENTER;
+ 
+
 }
 
 //-----------------------------------------------------------------------------
