@@ -140,7 +140,7 @@ void main(void)
     if (count % 40 == 0) {
       lcd_clear();
       lcd_clear();
-      lcd_print("Heading: %u,\n Heading error: %d\n PW:%d tar: %d\nRanger: %d", heading, heading_error, PW, heading_target, ranger);
+      lcd_print("Heading: %u,\n Heading error: %d\n bat:%d tar: %d\nRanger: %d", heading, heading_error, read_AD_input(3), heading_target, ranger);
       printf("%u;%d;%d;%d;%d;\r\n", heading, heading_error, PW, heading_target, ranger);
 
 	}
@@ -159,6 +159,9 @@ void Port_Init()
 {
   P1MDOUT |= 0x04;  //set output pin for CEX2 in push-pull mode
   P0MDOUT &= 0b11111111;
+  P1MDOUT &= ~0x08;
+  P1MDIN &= ~0x08;
+  P1 |= 0x08;
   P0 |= ~0b11111111;
   P3MDOUT &= 0x00;
   P3 |= 0xFF;
