@@ -1,2 +1,2 @@
 # litec-labs
-# CHILDREN THE CODE IN HERE IS WRONG
+# So yeah
